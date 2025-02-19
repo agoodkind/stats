@@ -349,6 +349,7 @@ Languages:
 
                 for lang in repo.get("languages", {}).get("edges", []):
                     name = lang.get("node", {}).get("name", "Other")
+                    print("repo [%s] lang [%s] size [%d]" % (repo.get("nameWithOwner"), name, lang.get("size", 0)))
                     languages = await self.languages
                     if name.lower() in exclude_langs_lower:
                         continue

@@ -73,6 +73,8 @@ class Queries(object):
         :return: deserialized REST JSON output
         """
 
+        print("querying %s" % path)
+        
         for _ in range(60):
             headers = {
                 "Authorization": f"token {self.access_token}",
@@ -335,6 +337,7 @@ Languages:
 
             repos = owned_repos.get("nodes", [])
             if not self._ignore_forked_repos:
+                print("considering repo [%s]" % contrib_repos.get("nodes", []).get("nameWithOwner"))
                 repos += contrib_repos.get("nodes", [])
 
             for repo in repos:

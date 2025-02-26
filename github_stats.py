@@ -73,8 +73,6 @@ class Queries(object):
         :return: deserialized REST JSON output
         """
 
-        print("querying %s" % path)
-        
         for _ in range(60):
             headers = {
                 "Authorization": f"token {self.access_token}",
@@ -273,7 +271,7 @@ class Stats(object):
         self._total_contributions: Optional[int] = None
         self._languages: Optional[Dict[str, Any]] = None
         self._repos: Optional[Set[str]] = None
-        self._lines_changed: Optional[Tuple[int, int]] = None
+        self._lines_changed: Optional[Tuple[Dict[str, int], int, int]] = None
         self._views: Optional[int] = None
 
     async def to_str(self) -> str:
@@ -290,9 +288,9 @@ Stargazers: {await self.stargazers:,}
 Forks: {await self.forks:,}
 All-time contributions: {await self.total_contributions:,}
 Repositories with contributions: {len(await self.repos)}
-Lines of code added: {lines_changed[0]:,}
-Lines of code deleted: {lines_changed[1]:,}
-Lines of code changed: {lines_changed[0] + lines_changed[1]:,}
+Lines of code added: {lines_changed[1]:,}
+Lines of code deleted: {lines_changed[2]:,}
+Lines of code changed: {lines_changed[1] + lines_changed[2]:,}
 Project page views: {await self.views:,}
 Languages:
   - {formatted_languages}"""
@@ -301,10 +299,11 @@ Languages:
         """
         Get lots of summary statistics using one big query. Sets many attributes
         """
-        self._stargazers = 0
-        self._forks = 0
+        stargazers = 0
+        forks = 0
         self._languages = dict()
-        self._repos = set()
+        seen_repos = set()
+        full_name = None
 
         exclude_langs_lower = {x.lower() for x in self._exclude_langs}
 
@@ -318,9 +317,9 @@ Languages:
             )
             raw_results = raw_results if raw_results is not None else {}
 
-            self._name = raw_results.get("data", {}).get("viewer", {}).get("name", None)
-            if self._name is None:
-                self._name = (
+            full_name = raw_results.get("data", {}).get("viewer", {}).get("name", None)
+            if full_name is None:
+                full_name = (
                     raw_results.get("data", {})
                     .get("viewer", {})
                     .get("login", "No Name")
@@ -337,22 +336,20 @@ Languages:
 
             repos = owned_repos.get("nodes", [])
             if not self._ignore_forked_repos:
-                print("considering repo [%s]" % contrib_repos.get("nodes", []).get("nameWithOwner"))
                 repos += contrib_repos.get("nodes", [])
 
             for repo in repos:
                 if repo is None:
                     continue
                 name = repo.get("nameWithOwner")
-                if name in self._repos or name in self._exclude_repos:
+                if name in seen_repos or name in self._exclude_repos:
                     continue
-                self._repos.add(name)
-                self._stargazers += repo.get("stargazers").get("totalCount", 0)
-                self._forks += repo.get("forkCount", 0)
+                seen_repos.add(name)
+                stargazers += repo.get("stargazers").get("totalCount", 0)
+                forks += repo.get("forkCount", 0)
 
                 for lang in repo.get("languages", {}).get("edges", []):
                     name = lang.get("node", {}).get("name", "Other")
-                    print("repo [%s] lang [%s] size [%d]" % (repo.get("nameWithOwner"), name, lang.get("size", 0)))
                     languages = await self.languages
                     if name.lower() in exclude_langs_lower:
                         continue
@@ -383,6 +380,12 @@ Languages:
         langs_total = sum([v.get("size", 0) for v in self._languages.values()])
         for k, v in self._languages.items():
             v["prop"] = 100 * (v.get("size", 0) / langs_total)
+
+        self._stargazers = stargazers
+        self._forks = forks
+        self._languages = languages
+        self._repos = seen_repos
+        self._name = full_name
 
     @property
     async def name(self) -> str:
@@ -478,13 +481,15 @@ Languages:
             )
         return cast(int, self._total_contributions)
 
+
     @property
-    async def lines_changed(self) -> Tuple[int, int]:
+    async def lines_changed(self) -> Tuple[Dict[str, int], int, int]:
         """
         :return: count of total lines added, removed, or modified by the user
         """
         if self._lines_changed is not None:
             return self._lines_changed
+        by_repo = {}
         additions = 0
         deletions = 0
         for repo in await self.repos:
@@ -499,11 +504,16 @@ Languages:
                 if author != self.username:
                     continue
 
+                week_additions = 0
+                week_deletions = 0
                 for week in author_obj.get("weeks", []):
-                    additions += week.get("a", 0)
-                    deletions += week.get("d", 0)
+                    week_additions += week.get("a", 0)
+                    week_deletions += week.get("d", 0)
 
-        self._lines_changed = (additions, deletions)
+                by_repo[repo] = week_additions + week_deletions
+                additions += week_additions
+                deletions += week_deletions
+        self._lines_changed = (by_repo, additions, deletions)
         return self._lines_changed
 
     @property

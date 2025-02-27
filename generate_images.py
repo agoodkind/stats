@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+import random
 import re
 
 import aiohttp
@@ -39,7 +40,7 @@ async def generate_overview(s: Stats) -> None:
     output = re.sub("{{ stars }}", f"{await s.stargazers:,}", output)
     output = re.sub("{{ forks }}", f"{await s.forks:,}", output)
     output = re.sub("{{ contributions }}", f"{await s.total_contributions:,}", output)
-    changed = (await s.lines_changed)[0] + (await s.lines_changed)[1]
+    changed = (await s.lines_changed)[1] + (await s.lines_changed)[2]
     output = re.sub("{{ lines_changed }}", f"{changed:,}", output)
     output = re.sub("{{ views }}", f"{await s.views:,}", output)
     output = re.sub("{{ repos }}", f"{len(await s.repos):,}", output)
@@ -90,6 +91,47 @@ fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8z"></path></svg>
         f.write(output)
 
 
+async def generate_top_repos(s: Stats) -> None:
+    """
+    Generate an SVG badge with the user's top repos
+    :param s: Represents user's GitHub statistics
+    """
+    with open("templates/top_repos.svg", "r") as f:
+        output = f.read()
+
+    top_repos = ""
+    COLORS = ["#3572A5", "#555555", "#3178c6", "#DA3434", "#89e051", "#00ADD8", "#c30e9b", "#427819", "#663399", "#e34c26"]
+    random.shuffle(COLORS)
+
+    changes_by_repo = (await s.lines_changed)[0]
+    if len(changes_by_repo) > 0:
+        sorted_repos = sorted(changes_by_repo.items(), reverse=True, key=lambda t: t[1])
+        max_activity = sorted_repos[0][1]
+        # Template only accommodates six.
+        sorted_repos = sorted_repos[:6]
+        delay_between = 150
+        for i, (repo, activity) in enumerate(sorted_repos):
+            color = COLORS[i]
+            top_repos += f"""
+<tr style="animation-delay: {i * delay_between}ms">
+<td width="50%"><div>{repo}</div></td>
+<td width="30%">
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
+<rect fill="{color}" width="{activity / max_activity * 100.0}%" height="100%"></rect>
+</svg>
+</td>
+<td width="20%"><div>{activity}</div></td>
+</tr>
+"""
+
+    output = re.sub("{{ name }}", await s.name, output)
+    output = re.sub(r"{{ top_repos }}", top_repos, output)
+
+    generate_output_folder()
+    with open("generated/top_repos.svg", "w") as f:
+        f.write(output)
+
+
 ################################################################################
 # Main Function
 ################################################################################
@@ -129,7 +171,7 @@ async def main() -> None:
             exclude_langs=excluded_langs,
             ignore_forked_repos=ignore_forked_repos,
         )
-        await asyncio.gather(generate_languages(s), generate_overview(s))
+        await asyncio.gather(generate_languages(s), generate_overview(s), generate_top_repos(s))
 
 
 if __name__ == "__main__":

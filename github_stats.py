@@ -48,7 +48,7 @@ class Queries(object):
                     headers=headers,
                     json={"query": generated_query},
                 )
-            result = await r_async.json()
+            result = await r_async.json(content_type=None)
             if result is not None:
                 return result
         except:
@@ -73,7 +73,7 @@ class Queries(object):
         :return: deserialized REST JSON output
         """
 
-        for _ in range(60):
+        for _ in range(10):
             headers = {
                 "Authorization": f"token {self.access_token}",
             }
@@ -94,11 +94,11 @@ class Queries(object):
                     await asyncio.sleep(2)
                     continue
 
-                result = await r_async.json()
+                result = await r_async.json(content_type=None)
                 if result is not None:
                     return result
-            except:
-                print("aiohttp failed for rest query on %s" % path)
+            except aiohttp.ClientResponseError as cre:
+                print("aiohttp failed for rest query on %s with %s" % (path, cre))
                 # Fall back on non-async requests
                 async with self.semaphore:
                     r_requests = requests.get(
@@ -146,6 +146,9 @@ class Queries(object):
           totalCount
         }}
         forkCount
+        owner {{
+            login
+        }}
         languages(first: 10, orderBy: {{field: SIZE, direction: DESC}}) {{
           edges {{
             size
@@ -341,27 +344,33 @@ Languages:
             for repo in repos:
                 if repo is None:
                     continue
-                name = repo.get("nameWithOwner")
-                if name in seen_repos or name in self._exclude_repos:
+                repo_name = repo.get("nameWithOwner")
+                if repo_name in seen_repos or repo_name in self._exclude_repos:
                     continue
-                seen_repos.add(name)
+                owner_name = repo.get("owner", {}).get("login", None)
+                if owner_name != self.username and self._ignore_forked_repos:
+                    print("skipping repo %s with owner %s" % (repo_name, owner_name))
+                    continue
+                seen_repos.add(repo_name)
                 stargazers += repo.get("stargazers").get("totalCount", 0)
                 forks += repo.get("forkCount", 0)
 
                 for lang in repo.get("languages", {}).get("edges", []):
-                    name = lang.get("node", {}).get("name", "Other")
+                    lang_name = lang.get("node", {}).get("name", "Other")
                     languages = await self.languages
-                    if name.lower() in exclude_langs_lower:
+                    if lang_name.lower() in exclude_langs_lower:
                         continue
-                    if name in languages:
-                        languages[name]["size"] += lang.get("size", 0)
-                        languages[name]["occurrences"] += 1
+                    if lang_name in languages:
+                        languages[lang_name]["size"] += lang.get("size", 0)
+                        languages[lang_name]["occurrences"] += 1
+                        print("repo %s lang %s size %s (adding)" % (repo_name, lang_name, lang.get("size", 0)))
                     else:
-                        languages[name] = {
+                        languages[lang_name] = {
                             "size": lang.get("size", 0),
                             "occurrences": 1,
                             "color": lang.get("node", {}).get("color"),
                         }
+                        print("repo %s lang %s size %s (inserting)" % (repo_name, lang_name, lang.get("size", 0)))
 
             if owned_repos.get("pageInfo", {}).get(
                 "hasNextPage", False
@@ -502,7 +511,6 @@ Languages:
                     continue
                 author = author_obj.get("author", {}).get("login", "")
                 if author != self.username:
-                    print("skipping repo %s because author %s doesn't match expected author %s" % (repo, author, self.username))
                     continue
 
                 week_additions = 0

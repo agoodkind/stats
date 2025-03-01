@@ -89,8 +89,8 @@ class Queries(object):
                         params=tuple(params.items()),
                     )
                 if r_async.status == 202:
-                    # print(f"{path} returned 202. Retrying...")
-                    print(f"A path returned 202. Retrying...")
+                    print(f"{path} returned 202. Retrying...")
+                    # print(f"A path returned 202. Retrying...")
                     await asyncio.sleep(2)
                     continue
 
@@ -98,7 +98,7 @@ class Queries(object):
                 if result is not None:
                     return result
             except:
-                print("aiohttp failed for rest query")
+                print("aiohttp failed for rest query on %s" % path)
                 # Fall back on non-async requests
                 async with self.semaphore:
                     r_requests = requests.get(
@@ -107,13 +107,13 @@ class Queries(object):
                         params=tuple(params.items()),
                     )
                     if r_requests.status_code == 202:
-                        print(f"A path returned 202. Retrying...")
+                        print(f"{path} returned 202 on fallback non-async path. Retrying...")
                         await asyncio.sleep(2)
                         continue
                     elif r_requests.status_code == 200:
                         return r_requests.json()
         # print(f"There were too many 202s. Data for {path} will be incomplete.")
-        print("There were too many 202s. Data for this repository will be incomplete.")
+        print("There were too many 202s. Data for %s will be incomplete." % path)
         return dict()
 
     @staticmethod
@@ -502,6 +502,7 @@ Languages:
                     continue
                 author = author_obj.get("author", {}).get("login", "")
                 if author != self.username:
+                    print("skipping repo %s because author %s doesn't match expected author %s" % (repo, author, self.username))
                     continue
 
                 week_additions = 0
@@ -514,6 +515,7 @@ Languages:
                 additions += week_additions
                 deletions += week_deletions
         self._lines_changed = (by_repo, additions, deletions)
+        print("by_repo: %s" % by_repo)
         return self._lines_changed
 
     @property

@@ -96,7 +96,7 @@ tr {
 <td width="50%"><div>agoodkind/lru-cache-simulator</div></td>
 <td width="30%">
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
-<rect fill="#00ADD8" width="100.0%" height="100%"></rect>
+<rect fill="#3572A5" width="100.0%" height="100%"></rect>
 </svg>
 </td>
 <td width="20%"><div>890033</div></td>
@@ -106,7 +106,7 @@ tr {
 <td width="50%"><div>agoodkind/hdfs-grpc-protobuf</div></td>
 <td width="30%">
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
-<rect fill="#663399" width="33.20483622517367%" height="100%"></rect>
+<rect fill="#427819" width="33.20483622517367%" height="100%"></rect>
 </svg>
 </td>
 <td width="20%"><div>295534</div></td>
@@ -116,7 +116,7 @@ tr {
 <td width="50%"><div>agoodkind/student-records-json-protobuf</div></td>
 <td width="30%">
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
-<rect fill="#3572A5" width="15.283815319207264%" height="100%"></rect>
+<rect fill="#3178c6" width="15.283815319207264%" height="100%"></rect>
 </svg>
 </td>
 <td width="20%"><div>136031</div></td>
@@ -126,7 +126,7 @@ tr {
 <td width="50%"><div>agoodkind/goodkind.io</div></td>
 <td width="30%">
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
-<rect fill="#555555" width="8.21070679401775%" height="100%"></rect>
+<rect fill="#89e051" width="8.21070679401775%" height="100%"></rect>
 </svg>
 </td>
 <td width="20%"><div>73078</div></td>
@@ -136,7 +136,7 @@ tr {
 <td width="50%"><div>agoodkind/chaotic.dog</div></td>
 <td width="30%">
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
-<rect fill="#3178c6" width="4.431633433816499%" height="100%"></rect>
+<rect fill="#00ADD8" width="4.431633433816499%" height="100%"></rect>
 </svg>
 </td>
 <td width="20%"><div>39443</div></td>
@@ -146,7 +146,7 @@ tr {
 <td width="50%"><div>agoodkind/download-encrypted-jff-videos</div></td>
 <td width="30%">
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
-<rect fill="#DA3434" width="3.4942524603020337%" height="100%"></rect>
+<rect fill="#e34c26" width="3.4942524603020337%" height="100%"></rect>
 </svg>
 </td>
 <td width="20%"><div>31100</div></td>

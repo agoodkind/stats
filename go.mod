@@ -10,8 +10,11 @@ require (
 )
 
 require (
+	github.com/fzipp/gocyclo v0.6.0 // indirect
 	github.com/gofrs/flock v0.13.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	golang.org/x/sys v0.37.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 )
+
+tool github.com/fzipp/gocyclo/cmd/gocyclo

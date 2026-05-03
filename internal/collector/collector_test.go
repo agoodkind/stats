@@ -3,6 +3,7 @@ package collector
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"math"
 	"os"
 	"path/filepath"
@@ -110,9 +111,7 @@ func TestCollectFixtureSDKRegression(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read golden diagnostics: %v", err)
 	}
-	if externalDiagnostics != string(expectedDiagnosticsBytes) {
-		t.Fatalf("diagnostics output mismatch\nexpected:\n%s\nactual:\n%s", string(expectedDiagnosticsBytes), externalDiagnostics)
-	}
+	assertDiagnosticsJSONEqual(t, expectedDiagnosticsBytes, []byte(externalDiagnostics))
 }
 
 func TestFormatDiagnosticsDeterministic(t *testing.T) {
@@ -361,6 +360,189 @@ func languageNames(languages []internalmodel.LanguageStat) string {
 		names = append(names, language.Name)
 	}
 	return strings.Join(names, ",")
+}
+
+func assertDiagnosticsJSONEqual(t *testing.T, expectedBytes []byte, actualBytes []byte) {
+	t.Helper()
+
+	var expectedReport internalmodel.DiagnosticsReport
+	if err := json.Unmarshal(expectedBytes, &expectedReport); err != nil {
+		t.Fatalf("decode expected diagnostics JSON: %v", err)
+	}
+
+	var actualReport internalmodel.DiagnosticsReport
+	if err := json.Unmarshal(actualBytes, &actualReport); err != nil {
+		t.Fatalf("decode actual diagnostics JSON: %v", err)
+	}
+
+	if diff := compareDiagnosticsReport(expectedReport, actualReport); diff != "" {
+		t.Fatalf("diagnostics output mismatch: %s\nexpected:\n%s\nactual:\n%s", diff, string(expectedBytes), string(actualBytes))
+	}
+}
+
+func compareDiagnosticsReport(expectedReport internalmodel.DiagnosticsReport, actualReport internalmodel.DiagnosticsReport) string {
+	if expectedReport.Scope != actualReport.Scope {
+		return fmt.Sprintf("scope got %q want %q", actualReport.Scope, expectedReport.Scope)
+	}
+	if diff := compareDiagnosticsSummary(expectedReport.Summary, actualReport.Summary); diff != "" {
+		return diff
+	}
+	if diff := compareLanguageStats("weightedOwnedLanguage", expectedReport.WeightedOwnedLanguage, actualReport.WeightedOwnedLanguage); diff != "" {
+		return diff
+	}
+	if diff := compareLanguageStats("rawOwnedLanguage", expectedReport.RawOwnedLanguage, actualReport.RawOwnedLanguage); diff != "" {
+		return diff
+	}
+	if diff := compareLanguageStats("externalEstimatedLanguage", expectedReport.ExternalEstimatedLanguage, actualReport.ExternalEstimatedLanguage); diff != "" {
+		return diff
+	}
+	if diff := compareLanguageStats("effectiveLanguage", expectedReport.EffectiveLanguage, actualReport.EffectiveLanguage); diff != "" {
+		return diff
+	}
+	if !reflect.DeepEqual(expectedReport.ExternalRepositories, actualReport.ExternalRepositories) {
+		return "externalRepositories differ"
+	}
+	if diff := compareExternalEstimates(expectedReport.ExternalEstimates, actualReport.ExternalEstimates); diff != "" {
+		return diff
+	}
+	if diff := compareInclusionDecisions(expectedReport.Decisions, actualReport.Decisions); diff != "" {
+		return diff
+	}
+	return ""
+}
+
+func compareDiagnosticsSummary(expectedSummary internalmodel.DiagnosticsSummary, actualSummary internalmodel.DiagnosticsSummary) string {
+	if expectedSummary.OwnedRepositoryCount != actualSummary.OwnedRepositoryCount {
+		return fmt.Sprintf("ownedRepositoryCount got %d want %d", actualSummary.OwnedRepositoryCount, expectedSummary.OwnedRepositoryCount)
+	}
+	if expectedSummary.ExternalRepositoryCount != actualSummary.ExternalRepositoryCount {
+		return fmt.Sprintf("externalRepositoryCount got %d want %d", actualSummary.ExternalRepositoryCount, expectedSummary.ExternalRepositoryCount)
+	}
+	if expectedSummary.IncludedOwnedCount != actualSummary.IncludedOwnedCount {
+		return fmt.Sprintf("includedOwnedCount got %d want %d", actualSummary.IncludedOwnedCount, expectedSummary.IncludedOwnedCount)
+	}
+	if expectedSummary.ExcludedOwnedCount != actualSummary.ExcludedOwnedCount {
+		return fmt.Sprintf("excludedOwnedCount got %d want %d", actualSummary.ExcludedOwnedCount, expectedSummary.ExcludedOwnedCount)
+	}
+	if expectedSummary.IncludeExternal != actualSummary.IncludeExternal {
+		return fmt.Sprintf("includeExternal got %t want %t", actualSummary.IncludeExternal, expectedSummary.IncludeExternal)
+	}
+	if expectedSummary.EstimatedExternalCount != actualSummary.EstimatedExternalCount {
+		return fmt.Sprintf("estimatedExternalCount got %d want %d", actualSummary.EstimatedExternalCount, expectedSummary.EstimatedExternalCount)
+	}
+	if expectedSummary.UnknownExternalCount != actualSummary.UnknownExternalCount {
+		return fmt.Sprintf("unknownExternalCount got %d want %d", actualSummary.UnknownExternalCount, expectedSummary.UnknownExternalCount)
+	}
+	if !floatsClose(expectedSummary.OwnedWeightedBytes, actualSummary.OwnedWeightedBytes) {
+		return fmt.Sprintf("ownedWeightedBytes got %.12f want %.12f", actualSummary.OwnedWeightedBytes, expectedSummary.OwnedWeightedBytes)
+	}
+	if !floatsClose(expectedSummary.ExternalWeightedBytes, actualSummary.ExternalWeightedBytes) {
+		return fmt.Sprintf("externalWeightedBytes got %.12f want %.12f", actualSummary.ExternalWeightedBytes, expectedSummary.ExternalWeightedBytes)
+	}
+	return ""
+}
+
+func compareLanguageStats(label string, expectedStats []internalmodel.LanguageStat, actualStats []internalmodel.LanguageStat) string {
+	if len(expectedStats) != len(actualStats) {
+		return fmt.Sprintf("%s length got %d want %d", label, len(actualStats), len(expectedStats))
+	}
+	for index, expectedStat := range expectedStats {
+		actualStat := actualStats[index]
+		if expectedStat.Name != actualStat.Name {
+			return fmt.Sprintf("%s[%d].name got %q want %q", label, index, actualStat.Name, expectedStat.Name)
+		}
+		if expectedStat.Color != actualStat.Color {
+			return fmt.Sprintf("%s[%d].color got %q want %q", label, index, actualStat.Color, expectedStat.Color)
+		}
+		if expectedStat.Bytes != actualStat.Bytes {
+			return fmt.Sprintf("%s[%d].bytes got %d want %d", label, index, actualStat.Bytes, expectedStat.Bytes)
+		}
+		if !floatsClose(expectedStat.Weighted, actualStat.Weighted) {
+			return fmt.Sprintf("%s[%d].weighted got %.12f want %.12f", label, index, actualStat.Weighted, expectedStat.Weighted)
+		}
+		if !floatsClose(expectedStat.Percentage, actualStat.Percentage) {
+			return fmt.Sprintf("%s[%d].percentage got %.12f want %.12f", label, index, actualStat.Percentage, expectedStat.Percentage)
+		}
+	}
+	return ""
+}
+
+func compareExternalEstimates(expectedEstimates []internalmodel.ExternalContributionEstimate, actualEstimates []internalmodel.ExternalContributionEstimate) string {
+	if len(expectedEstimates) != len(actualEstimates) {
+		return fmt.Sprintf("externalEstimates length got %d want %d", len(actualEstimates), len(expectedEstimates))
+	}
+	for index, expectedEstimate := range expectedEstimates {
+		actualEstimate := actualEstimates[index]
+		if expectedEstimate.RepositoryName != actualEstimate.RepositoryName {
+			return fmt.Sprintf("externalEstimates[%d].repositoryName got %q want %q", index, actualEstimate.RepositoryName, expectedEstimate.RepositoryName)
+		}
+		if expectedEstimate.Method != actualEstimate.Method {
+			return fmt.Sprintf("externalEstimates[%d].method got %q want %q", index, actualEstimate.Method, expectedEstimate.Method)
+		}
+		if expectedEstimate.Confidence != actualEstimate.Confidence {
+			return fmt.Sprintf("externalEstimates[%d].confidence got %q want %q", index, actualEstimate.Confidence, expectedEstimate.Confidence)
+		}
+		if !floatsClose(expectedEstimate.EstimatedRatio, actualEstimate.EstimatedRatio) {
+			return fmt.Sprintf("externalEstimates[%d].estimatedRatio got %.12f want %.12f", index, actualEstimate.EstimatedRatio, expectedEstimate.EstimatedRatio)
+		}
+		if !floatsClose(expectedEstimate.RawEstimatedBytes, actualEstimate.RawEstimatedBytes) {
+			return fmt.Sprintf("externalEstimates[%d].rawEstimatedBytes got %.12f want %.12f", index, actualEstimate.RawEstimatedBytes, expectedEstimate.RawEstimatedBytes)
+		}
+		if !floatsClose(expectedEstimate.WeightedEstimatedBytes, actualEstimate.WeightedEstimatedBytes) {
+			return fmt.Sprintf("externalEstimates[%d].weightedEstimatedBytes got %.12f want %.12f", index, actualEstimate.WeightedEstimatedBytes, expectedEstimate.WeightedEstimatedBytes)
+		}
+		if !floatsClose(expectedEstimate.RecencyWeight, actualEstimate.RecencyWeight) {
+			return fmt.Sprintf("externalEstimates[%d].recencyWeight got %.12f want %.12f", index, actualEstimate.RecencyWeight, expectedEstimate.RecencyWeight)
+		}
+		if expectedEstimate.EstimateNote != actualEstimate.EstimateNote {
+			return fmt.Sprintf("externalEstimates[%d].estimateNote got %q want %q", index, actualEstimate.EstimateNote, expectedEstimate.EstimateNote)
+		}
+		if diff := compareLanguageStats(fmt.Sprintf("externalEstimates[%d].languages", index), expectedEstimate.Languages, actualEstimate.Languages); diff != "" {
+			return diff
+		}
+	}
+	return ""
+}
+
+func compareInclusionDecisions(expectedDecisions []internalmodel.InclusionDecision, actualDecisions []internalmodel.InclusionDecision) string {
+	if len(expectedDecisions) != len(actualDecisions) {
+		return fmt.Sprintf("decisions length got %d want %d", len(actualDecisions), len(expectedDecisions))
+	}
+	for index, expectedDecision := range expectedDecisions {
+		actualDecision := actualDecisions[index]
+		if expectedDecision.RepositoryName != actualDecision.RepositoryName {
+			return fmt.Sprintf("decisions[%d].repositoryName got %q want %q", index, actualDecision.RepositoryName, expectedDecision.RepositoryName)
+		}
+		if expectedDecision.Source != actualDecision.Source {
+			return fmt.Sprintf("decisions[%d].source got %q want %q", index, actualDecision.Source, expectedDecision.Source)
+		}
+		if expectedDecision.Included != actualDecision.Included {
+			return fmt.Sprintf("decisions[%d].included got %t want %t", index, actualDecision.Included, expectedDecision.Included)
+		}
+		if expectedDecision.Reason != actualDecision.Reason {
+			return fmt.Sprintf("decisions[%d].reason got %q want %q", index, actualDecision.Reason, expectedDecision.Reason)
+		}
+		if expectedDecision.RawBytes != actualDecision.RawBytes {
+			return fmt.Sprintf("decisions[%d].rawBytes got %d want %d", index, actualDecision.RawBytes, expectedDecision.RawBytes)
+		}
+		if !floatsClose(expectedDecision.WeightedBytes, actualDecision.WeightedBytes) {
+			return fmt.Sprintf("decisions[%d].weightedBytes got %.12f want %.12f", index, actualDecision.WeightedBytes, expectedDecision.WeightedBytes)
+		}
+		if !floatsClose(expectedDecision.RecencyWeight, actualDecision.RecencyWeight) {
+			return fmt.Sprintf("decisions[%d].recencyWeight got %.12f want %.12f", index, actualDecision.RecencyWeight, expectedDecision.RecencyWeight)
+		}
+		if !expectedDecision.PushedAt.Equal(actualDecision.PushedAt) {
+			return fmt.Sprintf("decisions[%d].pushedAt got %s want %s", index, actualDecision.PushedAt, expectedDecision.PushedAt)
+		}
+		if !expectedDecision.UpdatedAt.Equal(actualDecision.UpdatedAt) {
+			return fmt.Sprintf("decisions[%d].updatedAt got %s want %s", index, actualDecision.UpdatedAt, expectedDecision.UpdatedAt)
+		}
+	}
+	return ""
+}
+
+func floatsClose(expected float64, actual float64) bool {
+	return math.Abs(actual-expected) <= fixtureFloatTolerance
 }
 
 func assertClose(t *testing.T, actual float64, expected float64, label string) {

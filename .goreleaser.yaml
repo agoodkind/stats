@@ -1,0 +1,14 @@
+version: 2
+
+project_name: stats-gh
+
+builds:
+  - id: stats-gh
+    main: ./cmd/stats-gh
+    binary: stats-gh
+
+archives:
+  - formats: [ "tar.gz" ]
+
+release:
+  disable: true

@@ -1,0 +1,5 @@
+query ActorID($login: String!) {
+  user(login: $login) {
+    id
+  }
+}

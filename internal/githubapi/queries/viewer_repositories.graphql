@@ -1,0 +1,71 @@
+query ViewerRepositories($ownedCursor: String, $externalCursor: String) {
+  viewer {
+    login
+    name
+    repositories(
+      first: 100
+      orderBy: {field: UPDATED_AT, direction: DESC}
+      ownerAffiliations: OWNER
+      after: $ownedCursor
+    ) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      nodes {
+        nameWithOwner
+        isFork
+        isArchived
+        isDisabled
+        pushedAt
+        updatedAt
+        forkCount
+        stargazers {
+          totalCount
+        }
+        languages(first: 10, orderBy: {field: SIZE, direction: DESC}) {
+          edges {
+            size
+            node {
+              name
+              color
+            }
+          }
+        }
+      }
+    }
+    repositoriesContributedTo(
+      first: 100
+      includeUserRepositories: false
+      orderBy: {field: UPDATED_AT, direction: DESC}
+      contributionTypes: [COMMIT, PULL_REQUEST, REPOSITORY, PULL_REQUEST_REVIEW]
+      after: $externalCursor
+    ) {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      nodes {
+        nameWithOwner
+        isFork
+        isArchived
+        isDisabled
+        pushedAt
+        updatedAt
+        forkCount
+        stargazers {
+          totalCount
+        }
+        languages(first: 10, orderBy: {field: SIZE, direction: DESC}) {
+          edges {
+            size
+            node {
+              name
+              color
+            }
+          }
+        }
+      }
+    }
+  }
+}

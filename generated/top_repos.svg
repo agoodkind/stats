@@ -54,7 +54,7 @@ td {
   color: rgb(88, 96, 105);
 }
 
-td>div {
+td > div {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -84,74 +84,72 @@ tr {
 
 <table>
 <thead><tr style="transform: translateX(0);">
-<th colspan="3">Alex Goodkind's Top GitHub Repos</th>
+<th colspan="3">Alex Goodkind&#39;s Top GitHub Repos</th>
 </tr></thead>
 </table>
 
 <table>
 <tbody>
 
-
 <tr style="animation-delay: 0ms">
 <td width="50%"><div>agoodkind/lru-cache-simulator</div></td>
 <td width="30%">
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
-<rect fill="#427819" width="100.0%" height="100%"></rect>
+<rect fill="#3572A5" width="100.00%" height="100%"></rect>
 </svg>
 </td>
-<td width="20%"><div>890033</div></td>
+<td width="20%"><div>792,823</div></td>
 </tr>
 
 <tr style="animation-delay: 150ms">
 <td width="50%"><div>agoodkind/hdfs-grpc-protobuf</div></td>
 <td width="30%">
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
-<rect fill="#DA3434" width="33.20483622517367%" height="100%"></rect>
+<rect fill="#555555" width="37.35%" height="100%"></rect>
 </svg>
 </td>
-<td width="20%"><div>295534</div></td>
+<td width="20%"><div>296,086</div></td>
 </tr>
 
 <tr style="animation-delay: 300ms">
-<td width="50%"><div>agoodkind/student-records-json-protobuf</div></td>
+<td width="50%"><div>agoodkind/clyde</div></td>
 <td width="30%">
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
-<rect fill="#c30e9b" width="15.283815319207264%" height="100%"></rect>
+<rect fill="#3178c6" width="36.76%" height="100%"></rect>
 </svg>
 </td>
-<td width="20%"><div>136031</div></td>
+<td width="20%"><div>291,459</div></td>
 </tr>
 
 <tr style="animation-delay: 450ms">
 <td width="50%"><div>agoodkind/configs</div></td>
 <td width="30%">
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
-<rect fill="#e34c26" width="12.187076209533803%" height="100%"></rect>
+<rect fill="#DA3434" width="20.75%" height="100%"></rect>
 </svg>
 </td>
-<td width="20%"><div>108469</div></td>
+<td width="20%"><div>164,501</div></td>
 </tr>
 
 <tr style="animation-delay: 600ms">
-<td width="50%"><div>agoodkind/goodkind.io</div></td>
+<td width="50%"><div>agoodkind/student-records-json-protobuf</div></td>
 <td width="30%">
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
-<rect fill="#555555" width="10.120523621034277%" height="100%"></rect>
+<rect fill="#89e051" width="17.16%" height="100%"></rect>
 </svg>
 </td>
-<td width="20%"><div>90076</div></td>
+<td width="20%"><div>136,031</div></td>
 </tr>
 
 <tr style="animation-delay: 750ms">
-<td width="50%"><div>agoodkind/skip-ai</div></td>
+<td width="50%"><div>agoodkind/goodkind.io</div></td>
 <td width="30%">
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
-<rect fill="#663399" width="9.017306099886184%" height="100%"></rect>
+<rect fill="#00ADD8" width="11.40%" height="100%"></rect>
 </svg>
 </td>
-<td width="20%"><div>80257</div></td>
+<td width="20%"><div>90,371</div></td>
 </tr>
-
 
 </tbody>
 </table>

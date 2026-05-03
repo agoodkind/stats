@@ -1,0 +1,20 @@
+query RepositoryCommitActivity($owner: String!, $name: String!, $actorID: ID!, $cursor: String) {
+  repository(owner: $owner, name: $name) {
+    defaultBranchRef {
+      target {
+        ... on Commit {
+          history(first: 100, author: {id: $actorID}, after: $cursor) {
+            nodes {
+              additions
+              deletions
+            }
+            pageInfo {
+              hasNextPage
+              endCursor
+            }
+          }
+        }
+      }
+    }
+  }
+}

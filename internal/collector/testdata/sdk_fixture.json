@@ -1,0 +1,263 @@
+{
+  "now": "2026-01-01T00:00:00Z",
+  "config": {
+    "excludedRepos": [
+      "me/excluded-repo"
+    ],
+    "excludedLangs": [
+      "html"
+    ],
+    "excludeForks": true,
+    "recencyHalfLifeHours": 8760,
+    "recencyFloor": 0.1
+  },
+  "viewer": {
+    "login": "sdk-user",
+    "name": "SDK User"
+  },
+  "ownedRepositories": [
+    {
+      "nameWithOwner": "me/recent-go",
+      "source": "owned",
+      "stars": 10,
+      "forks": 1,
+      "pushedAt": "2025-12-31T00:00:00Z",
+      "updatedAt": "2025-12-31T00:00:00Z",
+      "languages": [
+        {
+          "name": "Go",
+          "color": "#00ADD8",
+          "bytes": 1000
+        },
+        {
+          "name": "HTML",
+          "color": "#e34c26",
+          "bytes": 400
+        }
+      ]
+    },
+    {
+      "nameWithOwner": "me/older-rust",
+      "source": "owned",
+      "stars": 8,
+      "forks": 2,
+      "pushedAt": "2025-01-01T00:00:00Z",
+      "updatedAt": "2025-01-01T00:00:00Z",
+      "languages": [
+        {
+          "name": "Rust",
+          "color": "#dea584",
+          "bytes": 800
+        }
+      ]
+    },
+    {
+      "nameWithOwner": "me/shared-sdk",
+      "source": "owned",
+      "stars": 6,
+      "forks": 0,
+      "pushedAt": "2024-07-01T00:00:00Z",
+      "updatedAt": "2024-07-01T00:00:00Z",
+      "languages": [
+        {
+          "name": "Go",
+          "color": "",
+          "bytes": 400
+        },
+        {
+          "name": "TypeScript",
+          "color": "#3178c6",
+          "bytes": 400
+        }
+      ]
+    },
+    {
+      "nameWithOwner": "me/forked-go",
+      "source": "owned",
+      "isFork": true,
+      "stars": 1,
+      "forks": 0,
+      "pushedAt": "2025-11-01T00:00:00Z",
+      "updatedAt": "2025-11-01T00:00:00Z",
+      "languages": [
+        {
+          "name": "Go",
+          "color": "#00ADD8",
+          "bytes": 999
+        }
+      ]
+    },
+    {
+      "nameWithOwner": "me/excluded-repo",
+      "source": "owned",
+      "stars": 2,
+      "forks": 0,
+      "pushedAt": "2025-10-01T00:00:00Z",
+      "updatedAt": "2025-10-01T00:00:00Z",
+      "languages": [
+        {
+          "name": "Go",
+          "color": "#00ADD8",
+          "bytes": 555
+        }
+      ]
+    },
+    {
+      "nameWithOwner": "me/archived-old",
+      "source": "owned",
+      "isArchived": true,
+      "stars": 3,
+      "forks": 1,
+      "pushedAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2024-01-01T00:00:00Z",
+      "languages": [
+        {
+          "name": "Python",
+          "color": "#3572A5",
+          "bytes": 700
+        }
+      ]
+    },
+    {
+      "nameWithOwner": "me/no-langs",
+      "source": "owned",
+      "stars": 0,
+      "forks": 0,
+      "pushedAt": "2025-08-01T00:00:00Z",
+      "updatedAt": "2025-08-01T00:00:00Z",
+      "languages": []
+    },
+    {
+      "nameWithOwner": "me/disabled-zero",
+      "source": "owned",
+      "isDisabled": true,
+      "stars": 4,
+      "forks": 0,
+      "pushedAt": "2025-07-01T00:00:00Z",
+      "updatedAt": "2025-07-01T00:00:00Z",
+      "languages": [
+        {
+          "name": "JavaScript",
+          "color": "#f1e05a",
+          "bytes": 250
+        }
+      ]
+    }
+  ],
+  "externalRepositories": [
+    {
+      "nameWithOwner": "org/huge-external-docs",
+      "source": "external",
+      "pushedAt": "2025-10-01T00:00:00Z",
+      "updatedAt": "2025-10-01T00:00:00Z",
+      "languages": [
+        {
+          "name": "HTML",
+          "color": "#e34c26",
+          "bytes": 9000000
+        },
+        {
+          "name": "Go",
+          "color": "#00ADD8",
+          "bytes": 1000
+        }
+      ]
+    },
+    {
+      "nameWithOwner": "org/external-sdk",
+      "source": "external",
+      "pushedAt": "2024-12-01T00:00:00Z",
+      "updatedAt": "2024-12-01T00:00:00Z",
+      "languages": [
+        {
+          "name": "Go",
+          "color": "#00ADD8",
+          "bytes": 2000
+        },
+        {
+          "name": "TypeScript",
+          "color": "#3178c6",
+          "bytes": 500
+        }
+      ]
+    }
+  ],
+  "contributionCount": 321,
+  "views": 789,
+  "activities": [
+    {
+      "repositoryName": "me/shared-sdk",
+      "activity": 100
+    },
+    {
+      "repositoryName": "me/recent-go",
+      "activity": 100
+    },
+    {
+      "repositoryName": "me/older-rust",
+      "activity": 90
+    },
+    {
+      "repositoryName": "me/forked-go",
+      "activity": 80
+    },
+    {
+      "repositoryName": "me/archived-old",
+      "activity": 70
+    },
+    {
+      "repositoryName": "me/excluded-repo",
+      "activity": 60
+    },
+    {
+      "repositoryName": "me/no-langs",
+      "activity": 50
+    }
+  ],
+  "additions": 111,
+  "deletions": 222,
+  "externalEstimates": [
+    {
+      "repositoryName": "org/huge-external-docs",
+      "method": "contributors_stats_ratio",
+      "confidence": "approximate",
+      "estimatedRatio": 0.01,
+      "rawEstimatedBytes": 90010,
+      "languages": [
+        {
+          "name": "HTML",
+          "color": "#e34c26",
+          "bytes": 90000,
+          "weighted": 90000
+        },
+        {
+          "name": "Go",
+          "color": "#00ADD8",
+          "bytes": 10,
+          "weighted": 10
+        }
+      ]
+    },
+    {
+      "repositoryName": "org/external-sdk",
+      "method": "contributors_stats_ratio",
+      "confidence": "approximate",
+      "estimatedRatio": 0.6,
+      "rawEstimatedBytes": 1500,
+      "languages": [
+        {
+          "name": "Go",
+          "color": "#00ADD8",
+          "bytes": 1200,
+          "weighted": 1200
+        },
+        {
+          "name": "TypeScript",
+          "color": "#3178c6",
+          "bytes": 300,
+          "weighted": 300
+        }
+      ]
+    }
+  ]
+}

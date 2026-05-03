@@ -1,0 +1,291 @@
+{
+  "scope": "all-time owned repositories, recency weighted",
+  "summary": {
+    "ownedRepositoryCount": 8,
+    "externalRepositoryCount": 2,
+    "includedOwnedCount": 3,
+    "excludedOwnedCount": 5,
+    "includeExternal": false,
+    "estimatedExternalCount": 2,
+    "unknownExternalCount": 0,
+    "ownedWeightedBytes": 1680.1409359390868,
+    "externalWeightedBytes": 76288.48296719881
+  },
+  "weightedOwnedLanguage": [
+    {
+      "name": "Go",
+      "color": "#00ADD8",
+      "bytes": 1400,
+      "weighted": 1139.1218522953407,
+      "percentage": 67.79918445702577
+    },
+    {
+      "name": "Rust",
+      "color": "#dea584",
+      "bytes": 800,
+      "weighted": 400,
+      "percentage": 23.807526585644833
+    },
+    {
+      "name": "TypeScript",
+      "color": "#3178c6",
+      "bytes": 400,
+      "weighted": 141.01908364374611,
+      "percentage": 8.393288957329395
+    }
+  ],
+  "rawOwnedLanguage": [
+    {
+      "name": "Go",
+      "color": "#00ADD8",
+      "bytes": 1400,
+      "weighted": 1400,
+      "percentage": 53.84615384615385
+    },
+    {
+      "name": "Rust",
+      "color": "#dea584",
+      "bytes": 800,
+      "weighted": 800,
+      "percentage": 30.76923076923077
+    },
+    {
+      "name": "TypeScript",
+      "color": "#3178c6",
+      "bytes": 400,
+      "weighted": 400,
+      "percentage": 15.384615384615385
+    }
+  ],
+  "externalEstimatedLanguage": [
+    {
+      "name": "Go",
+      "color": "#00ADD8",
+      "bytes": 1210,
+      "weighted": 574.0945738777605,
+      "percentage": 80.23471064699427
+    },
+    {
+      "name": "TypeScript",
+      "color": "#3178c6",
+      "bytes": 300,
+      "weighted": 141.42439446947202,
+      "percentage": 19.765289353005738
+    }
+  ],
+  "effectiveLanguage": [
+    {
+      "name": "Go",
+      "color": "#00ADD8",
+      "bytes": 1400,
+      "weighted": 1139.1218522953407,
+      "percentage": 67.79918445702577
+    },
+    {
+      "name": "Rust",
+      "color": "#dea584",
+      "bytes": 800,
+      "weighted": 400,
+      "percentage": 23.807526585644833
+    },
+    {
+      "name": "TypeScript",
+      "color": "#3178c6",
+      "bytes": 400,
+      "weighted": 141.01908364374611,
+      "percentage": 8.393288957329395
+    }
+  ],
+  "externalRepositories": [
+    {
+      "nameWithOwner": "org/huge-external-docs",
+      "source": "external",
+      "isFork": false,
+      "isArchived": false,
+      "isDisabled": false,
+      "stars": 0,
+      "forks": 0,
+      "pushedAt": "2025-10-01T00:00:00Z",
+      "updatedAt": "2025-10-01T00:00:00Z",
+      "languages": [
+        {
+          "name": "HTML",
+          "color": "#e34c26",
+          "bytes": 9000000
+        },
+        {
+          "name": "Go",
+          "color": "#00ADD8",
+          "bytes": 1000
+        }
+      ]
+    },
+    {
+      "nameWithOwner": "org/external-sdk",
+      "source": "external",
+      "isFork": false,
+      "isArchived": false,
+      "isDisabled": false,
+      "stars": 0,
+      "forks": 0,
+      "pushedAt": "2024-12-01T00:00:00Z",
+      "updatedAt": "2024-12-01T00:00:00Z",
+      "languages": [
+        {
+          "name": "Go",
+          "color": "#00ADD8",
+          "bytes": 2000
+        },
+        {
+          "name": "TypeScript",
+          "color": "#3178c6",
+          "bytes": 500
+        }
+      ]
+    }
+  ],
+  "externalEstimates": [
+    {
+      "repositoryName": "org/huge-external-docs",
+      "method": "contributors_stats_ratio",
+      "confidence": "approximate",
+      "estimatedRatio": 0.01,
+      "rawEstimatedBytes": 90010,
+      "weightedEstimatedBytes": 75581.36099485145,
+      "recencyWeight": 0.8396995999872398,
+      "languages": [
+        {
+          "name": "HTML",
+          "color": "#e34c26",
+          "bytes": 90000,
+          "weighted": 75572.96399885158,
+          "percentage": 99.98889012331962
+        },
+        {
+          "name": "Go",
+          "color": "#00ADD8",
+          "bytes": 10,
+          "weighted": 8.396995999872397,
+          "percentage": 0.011109876680368846
+        }
+      ],
+      "estimateNote": ""
+    },
+    {
+      "repositoryName": "org/external-sdk",
+      "method": "contributors_stats_ratio",
+      "confidence": "approximate",
+      "estimatedRatio": 0.6,
+      "rawEstimatedBytes": 1500,
+      "weightedEstimatedBytes": 707.1219723473602,
+      "recencyWeight": 0.4714146482315734,
+      "languages": [
+        {
+          "name": "Go",
+          "color": "#00ADD8",
+          "bytes": 1200,
+          "weighted": 565.6975778778881,
+          "percentage": 80
+        },
+        {
+          "name": "TypeScript",
+          "color": "#3178c6",
+          "bytes": 300,
+          "weighted": 141.42439446947202,
+          "percentage": 20
+        }
+      ],
+      "estimateNote": ""
+    }
+  ],
+  "decisions": [
+    {
+      "repositoryName": "me/recent-go",
+      "source": "owned",
+      "included": true,
+      "reason": "recency_weighted",
+      "rawBytes": 1400,
+      "weightedBytes": 1397.3438761122325,
+      "recencyWeight": 0.9981027686515946,
+      "pushedAt": "2025-12-31T00:00:00Z",
+      "updatedAt": "2025-12-31T00:00:00Z"
+    },
+    {
+      "repositoryName": "me/older-rust",
+      "source": "owned",
+      "included": true,
+      "reason": "recency_weighted",
+      "rawBytes": 800,
+      "weightedBytes": 400,
+      "recencyWeight": 0.5,
+      "pushedAt": "2025-01-01T00:00:00Z",
+      "updatedAt": "2025-01-01T00:00:00Z"
+    },
+    {
+      "repositoryName": "me/shared-sdk",
+      "source": "owned",
+      "included": true,
+      "reason": "recency_weighted",
+      "rawBytes": 800,
+      "weightedBytes": 282.03816728749223,
+      "recencyWeight": 0.3525477091093653,
+      "pushedAt": "2024-07-01T00:00:00Z",
+      "updatedAt": "2024-07-01T00:00:00Z"
+    },
+    {
+      "repositoryName": "me/forked-go",
+      "source": "owned",
+      "included": false,
+      "reason": "fork",
+      "rawBytes": 999,
+      "weightedBytes": 0,
+      "recencyWeight": 0,
+      "pushedAt": "2025-11-01T00:00:00Z",
+      "updatedAt": "2025-11-01T00:00:00Z"
+    },
+    {
+      "repositoryName": "me/excluded-repo",
+      "source": "owned",
+      "included": false,
+      "reason": "excluded_repo",
+      "rawBytes": 555,
+      "weightedBytes": 0,
+      "recencyWeight": 0,
+      "pushedAt": "2025-10-01T00:00:00Z",
+      "updatedAt": "2025-10-01T00:00:00Z"
+    },
+    {
+      "repositoryName": "me/archived-old",
+      "source": "owned",
+      "included": false,
+      "reason": "archived",
+      "rawBytes": 700,
+      "weightedBytes": 0,
+      "recencyWeight": 0,
+      "pushedAt": "2024-01-01T00:00:00Z",
+      "updatedAt": "2024-01-01T00:00:00Z"
+    },
+    {
+      "repositoryName": "me/no-langs",
+      "source": "owned",
+      "included": false,
+      "reason": "missing_language_data",
+      "rawBytes": 0,
+      "weightedBytes": 0,
+      "recencyWeight": 0,
+      "pushedAt": "2025-08-01T00:00:00Z",
+      "updatedAt": "2025-08-01T00:00:00Z"
+    },
+    {
+      "repositoryName": "me/disabled-zero",
+      "source": "owned",
+      "included": false,
+      "reason": "disabled",
+      "rawBytes": 250,
+      "weightedBytes": 0,
+      "recencyWeight": 0,
+      "pushedAt": "2025-07-01T00:00:00Z",
+      "updatedAt": "2025-07-01T00:00:00Z"
+    }
+  ]
+}

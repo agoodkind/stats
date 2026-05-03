@@ -1,4 +1,4 @@
-<svg id="gh-dark-mode-only" width="360" height="210" xmlns="http://www.w3.org/2000/svg">
+<svg id="GH_DARK_MODE_ONLY" width="360" height="210" xmlns="http://www.w3.org/2000/svg">
 <style>
 svg {
   font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji;
@@ -16,7 +16,7 @@ svg {
   ry: 6px;
 }
 
-#gh-dark-mode-only:target #background {
+#GH_DARK_MODE_ONLY:target #background {
   fill: #0d1117;
   stroke-width: 0.5px;
 }
@@ -41,7 +41,7 @@ th {
   color: rgb(3, 102, 214);
 }
 
-#gh-dark-mode-only:target th {
+#GH_DARK_MODE_ONLY:target th {
   color: #58a6ff;
 }
 
@@ -54,14 +54,14 @@ td {
   color: rgb(88, 96, 105);
 }
 
-td>div {
+td > div {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   width: 100%;
 }
 
-#gh-dark-mode-only:target td {
+#GH_DARK_MODE_ONLY:target td {
   color: #c9d1d9;
 }
 
@@ -84,15 +84,23 @@ tr {
 
 <table>
 <thead><tr style="transform: translateX(0);">
-<th colspan="3">{{ name }}'s Top GitHub Repos</th>
+<th colspan="3">{{ .Name }}&#39;s Top GitHub Repos</th>
 </tr></thead>
 </table>
 
 <table>
 <tbody>
-
-{{ top_repos }}
-
+{{ range $index, $repo := .Repos }}
+<tr style="animation-delay: {{ multiply $index 150 }}ms">
+<td width="50%"><div>{{ $repo.RepositoryName }}</div></td>
+<td width="30%">
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
+<rect fill="{{ $repo.Color }}" width="{{ printf "%.2f" $repo.WidthPercentage }}%" height="100%"></rect>
+</svg>
+</td>
+<td width="20%"><div>{{ $repo.Activity }}</div></td>
+</tr>
+{{ end }}
 </tbody>
 </table>
 

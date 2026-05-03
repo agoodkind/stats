@@ -1,0 +1,17 @@
+[github]
+# token may be omitted when GITHUB_TOKEN or GH_TOKEN is set.
+# actor may be omitted when GITHUB_ACTOR or GH_ACTOR is set.
+actor = "agoodkind"
+
+[filters]
+excluded_repos = []
+excluded_langs = []
+exclude_forked_repos = true
+include_external = false
+
+[recency]
+half_life = "3y"
+floor = 0.05
+
+[logging]
+level = "INFO"

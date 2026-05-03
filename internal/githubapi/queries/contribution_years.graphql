@@ -1,0 +1,7 @@
+query ContributionYears {
+  viewer {
+    contributionsCollection {
+      contributionYears
+    }
+  }
+}

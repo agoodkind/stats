@@ -28,7 +28,8 @@ jobs:
 
       - name: Generate images
         env:
-          GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+          GH_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: make generate
 
       - name: Commit generated SVGs

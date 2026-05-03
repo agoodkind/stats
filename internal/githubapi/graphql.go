@@ -24,10 +24,10 @@ type graphQLError struct {
 }
 
 type viewerPageResponse struct {
-	Viewer viewerRepositoriesPayload `json:"viewer"`
+	User actorRepositoriesPayload `json:"user"`
 }
 
-type viewerRepositoriesPayload struct {
+type actorRepositoriesPayload struct {
 	Login                     string               `json:"login"`
 	Name                      string               `json:"name"`
 	Repositories              repositoryConnection `json:"repositories"`
@@ -75,15 +75,15 @@ type languageNode struct {
 }
 
 type contributionYearsResponse struct {
-	Viewer struct {
+	User struct {
 		ContributionsCollection struct {
 			ContributionYears []int `json:"contributionYears"`
 		} `json:"contributionsCollection"`
-	} `json:"viewer"`
+	} `json:"user"`
 }
 
 type contributionsByYearResponse struct {
-	Viewer map[string]yearContributions `json:"viewer"`
+	User map[string]yearContributions `json:"user"`
 }
 
 type yearContributions struct {
@@ -133,6 +133,7 @@ func (client *Client) FetchViewerRepositories(ctx context.Context) (internalmode
 	for {
 		var response graphQLResponse[viewerPageResponse]
 		variables := map[string]any{
+			"login":          client.actor,
 			"ownedCursor":    optionalCursor(ownedCursor),
 			"externalCursor": optionalCursor(externalCursor),
 		}
@@ -144,20 +145,20 @@ func (client *Client) FetchViewerRepositories(ctx context.Context) (internalmode
 			return viewer, nil, nil, fmt.Errorf("graphql error: %s", response.Errors[0].Message)
 		}
 
-		viewer = internalmodel.ViewerSummary{Login: response.Data.Viewer.Login, Name: response.Data.Viewer.Name}
-		ownedRepositories = append(ownedRepositories, mapRepositories(response.Data.Viewer.Repositories.Nodes, internalmodel.RepositorySourceOwned)...)
-		externalRepositories = append(externalRepositories, mapRepositories(response.Data.Viewer.RepositoriesContributedTo.Nodes, internalmodel.RepositorySourceExternal)...)
+		viewer = internalmodel.ViewerSummary{Login: response.Data.User.Login, Name: response.Data.User.Name}
+		ownedRepositories = append(ownedRepositories, mapRepositories(response.Data.User.Repositories.Nodes, internalmodel.RepositorySourceOwned)...)
+		externalRepositories = append(externalRepositories, mapRepositories(response.Data.User.RepositoriesContributedTo.Nodes, internalmodel.RepositorySourceExternal)...)
 
-		ownedHasNext := response.Data.Viewer.Repositories.PageInfo.HasNextPage
-		externalHasNext := response.Data.Viewer.RepositoriesContributedTo.PageInfo.HasNextPage
+		ownedHasNext := response.Data.User.Repositories.PageInfo.HasNextPage
+		externalHasNext := response.Data.User.RepositoriesContributedTo.PageInfo.HasNextPage
 		if !ownedHasNext && !externalHasNext {
 			break
 		}
 		if ownedHasNext {
-			ownedCursor = response.Data.Viewer.Repositories.PageInfo.EndCursor
+			ownedCursor = response.Data.User.Repositories.PageInfo.EndCursor
 		}
 		if externalHasNext {
-			externalCursor = response.Data.Viewer.RepositoriesContributedTo.PageInfo.EndCursor
+			externalCursor = response.Data.User.RepositoriesContributedTo.PageInfo.EndCursor
 		}
 	}
 
@@ -170,7 +171,8 @@ func (client *Client) FetchTotalContributions(ctx context.Context) (int, error) 
 		return 0, err
 	}
 	var yearsResponse graphQLResponse[contributionYearsResponse]
-	if err := client.doGraphQL(ctx, yearsQuery, nil, &yearsResponse); err != nil {
+	yearsVariables := map[string]any{"login": client.actor}
+	if err := client.doGraphQL(ctx, yearsQuery, yearsVariables, &yearsResponse); err != nil {
 		slog.ErrorContext(ctx, "fetch contribution years", "error", err)
 		return 0, fmt.Errorf("fetch contribution years: %w", err)
 	}
@@ -178,7 +180,7 @@ func (client *Client) FetchTotalContributions(ctx context.Context) (int, error) 
 		return 0, fmt.Errorf("graphql error: %s", yearsResponse.Errors[0].Message)
 	}
 
-	years := yearsResponse.Data.Viewer.ContributionsCollection.ContributionYears
+	years := yearsResponse.Data.User.ContributionsCollection.ContributionYears
 	if len(years) == 0 {
 		return 0, nil
 	}
@@ -188,7 +190,8 @@ func (client *Client) FetchTotalContributions(ctx context.Context) (int, error) 
 		return 0, err
 	}
 	var contributionsResponse graphQLResponse[contributionsByYearResponse]
-	if err := client.doGraphQL(ctx, query, nil, &contributionsResponse); err != nil {
+	contributionsVariables := map[string]any{"login": client.actor}
+	if err := client.doGraphQL(ctx, query, contributionsVariables, &contributionsResponse); err != nil {
 		slog.ErrorContext(ctx, "fetch contributions by year", "error", err)
 		return 0, fmt.Errorf("fetch contributions by year: %w", err)
 	}
@@ -197,7 +200,7 @@ func (client *Client) FetchTotalContributions(ctx context.Context) (int, error) 
 	}
 
 	totalContributions := 0
-	for _, contribution := range contributionsResponse.Data.Viewer {
+	for _, contribution := range contributionsResponse.Data.User {
 		totalContributions += contribution.ContributionCalendar.TotalContributions
 	}
 	return totalContributions, nil

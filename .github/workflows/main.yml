@@ -28,7 +28,6 @@ jobs:
 
       - name: Generate images
         env:
-          GH_TOKEN: ${{ secrets.ACCESS_TOKEN }}
           GITHUB_TOKEN: ${{ github.token }}
         run: make generate
 

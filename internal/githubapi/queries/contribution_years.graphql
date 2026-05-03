@@ -1,5 +1,5 @@
-query ContributionYears {
-  viewer {
+query ContributionYears($login: String!) {
+  user(login: $login) {
     contributionsCollection {
       contributionYears
     }

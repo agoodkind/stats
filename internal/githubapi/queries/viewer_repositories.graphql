@@ -1,5 +1,5 @@
-query ViewerRepositories($ownedCursor: String, $externalCursor: String) {
-  viewer {
+query ViewerRepositories($login: String!, $ownedCursor: String, $externalCursor: String) {
+  user(login: $login) {
     login
     name
     repositories(

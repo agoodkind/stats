@@ -1,5 +1,5 @@
-query ContributionsByYear {
-  viewer {
+query ContributionsByYear($login: String!) {
+  user(login: $login) {
 %s
   }
 }

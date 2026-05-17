@@ -51,7 +51,7 @@ type languageTemplateItem struct {
 
 type topRepoView struct {
 	RepositoryName      string
-	Activity            string
+	Display             string
 	Color               string
 	WidthDisplayPercent string
 }
@@ -128,22 +128,22 @@ func buildLanguageTemplateData(languages []internalmodel.LanguageStat) languageT
 }
 
 func buildTopReposTemplateData(name string, repos []internalmodel.RepoActivity) topReposTemplateData {
-	maxActivity := 0
+	maxScore := 0.0
 	for _, repo := range repos {
-		if repo.Activity > maxActivity {
-			maxActivity = repo.Activity
+		if repo.Score > maxScore {
+			maxScore = repo.Score
 		}
 	}
 	colors := []string{"#3572A5", "#555555", "#3178c6", "#DA3434", "#89e051", "#00ADD8"}
 	rows := make([]topRepoView, 0, len(repos))
 	for index, repo := range repos {
 		width := 0.0
-		if maxActivity > 0 {
-			width = 100 * float64(repo.Activity) / float64(maxActivity)
+		if maxScore > 0 {
+			width = 100 * repo.Score / maxScore
 		}
 		rows = append(rows, topRepoView{
 			RepositoryName:      strings.TrimSpace(repo.RepositoryName),
-			Activity:            formatInteger(repo.Activity),
+			Display:             fmt.Sprintf("%s · ★%s", formatInteger(repo.Commits), formatInteger(repo.Stars)),
 			Color:               sanitizeColor(colors[index%len(colors)]),
 			WidthDisplayPercent: fmt.Sprintf("%.2f", clampPercentage(width)),
 		})

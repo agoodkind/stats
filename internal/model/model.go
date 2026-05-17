@@ -54,8 +54,10 @@ type InclusionDecision struct {
 }
 
 type RepoActivity struct {
-	RepositoryName string `json:"repositoryName"`
-	Activity       int    `json:"activity"`
+	RepositoryName string  `json:"repositoryName"`
+	Commits        int     `json:"commits"`
+	Stars          int     `json:"stars"`
+	Score          float64 `json:"score"`
 }
 
 type ExternalContributionEstimate struct {

@@ -17,8 +17,8 @@ const defaultRecencyHalfLife = 3 * 365 * 24 * time.Hour
 const defaultRecencyFloor = 0.05
 const hoursPerYear = 365 * 24
 
-var githubTokenEnvironmentKeys = []string{"GITHUB_TOKEN", "GH_TOKEN"}
-var githubActorEnvironmentKeys = []string{"GITHUB_ACTOR", "GH_ACTOR"}
+var githubTokenEnvironmentKeys = []string{"GH_TOKEN", "GITHUB_TOKEN"}
+var githubActorEnvironmentKeys = []string{"GH_ACTOR", "GITHUB_ACTOR"}
 
 type Config struct {
 	Path            string
@@ -175,6 +175,7 @@ func parseHalfLife(value string) (time.Duration, error) {
 		yearCountValue := strings.TrimSuffix(trimmedValue, "y")
 		yearCount, err := strconv.ParseFloat(yearCountValue, 64)
 		if err != nil {
+			slog.Error("parse recency.half_life years", "value", value, "error", err)
 			return 0, fmt.Errorf("parse recency.half_life years %q: %w", value, err)
 		}
 		return time.Duration(yearCount * float64(hoursPerYear) * float64(time.Hour)), nil
@@ -182,6 +183,7 @@ func parseHalfLife(value string) (time.Duration, error) {
 
 	duration, err := time.ParseDuration(trimmedValue)
 	if err != nil {
+		slog.Error("parse recency.half_life", "value", value, "error", err)
 		return 0, fmt.Errorf("parse recency.half_life %q: %w", value, err)
 	}
 	return duration, nil

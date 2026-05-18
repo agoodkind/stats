@@ -14,26 +14,35 @@ import (
 	internalversion "github.com/agoodkind/stats/internal/version"
 )
 
+type commandName string
+
+const (
+	commandGenerate commandName = "generate"
+	commandDiagnose commandName = "diagnose"
+	commandVersion  commandName = "version"
+	commandEmpty    commandName = ""
+)
+
 func Run(ctx context.Context, cfg internalconfig.Config, args []string) error {
 	logger := internallogging.LoggerFromContext(ctx)
-	command := "generate"
+	command := commandGenerate
 	if len(args) > 0 {
-		command = strings.TrimSpace(args[0])
+		command = commandName(strings.TrimSpace(args[0]))
 	}
 
-	logger.InfoContext(ctx, "starting stats-gh", "command", command, "actor", cfg.GitHubActor)
+	logger.InfoContext(ctx, "starting stats-gh", "command", string(command), "actor", cfg.GitHubActor)
 
 	switch command {
-	case "generate":
+	case commandGenerate:
 		return runGenerate(ctx, cfg)
-	case "diagnose":
+	case commandDiagnose:
 		return runDiagnose(ctx, cfg)
-	case "version":
+	case commandVersion:
 		return internaloutput.WriteStdout(internalversion.String() + "\n")
-	case "":
+	case commandEmpty:
 		return fmt.Errorf("empty command")
 	default:
-		return fmt.Errorf("unknown command %q", command)
+		return fmt.Errorf("unknown command %q", string(command))
 	}
 }
 

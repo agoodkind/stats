@@ -14,8 +14,8 @@ https://github.community/t/support-theme-context-for-images-in-light-vs-dark-mod
 
 Copy `config.toml.example` to `config.toml`, then set the GitHub actor and token inputs. The CLI reads `github.actor` and `github.token` from the config file, and environment variables can provide either value.
 
-- `GITHUB_TOKEN` or `GH_TOKEN` can provide `github.token`.
-- `GITHUB_ACTOR` or `GH_ACTOR` can provide `github.actor`.
+- `GH_TOKEN` or `GITHUB_TOKEN` can provide `github.token`. `GH_TOKEN` takes priority when both are set (so a personal token can override the Actions default).
+- `GH_ACTOR` or `GITHUB_ACTOR` can provide `github.actor`. Same priority rule.
 - `filters.excluded_repos` removes repositories by full name.
 - `filters.excluded_langs` removes languages by name.
 - `filters.exclude_forked_repos` removes forked repositories from repository-based totals.

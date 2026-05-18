@@ -3,6 +3,7 @@ package githubapi
 import (
 	"context"
 	"embed"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -14,13 +15,44 @@ import (
 //go:embed queries/*.graphql
 var graphQLQueries embed.FS
 
-type graphQLResponse[T any] struct {
-	Data   T              `json:"data"`
-	Errors []graphQLError `json:"errors"`
-}
-
 type graphQLError struct {
 	Message string `json:"message"`
+}
+
+type graphQLVariables interface {
+	graphQLVariablesMarker()
+}
+
+type viewerRepositoriesVariables struct {
+	Login          string  `json:"login"`
+	OwnedCursor    *string `json:"ownedCursor,omitempty"`
+	ExternalCursor *string `json:"externalCursor,omitempty"`
+}
+
+func (viewerRepositoriesVariables) graphQLVariablesMarker() {}
+
+type loginVariables struct {
+	Login string `json:"login"`
+}
+
+func (loginVariables) graphQLVariablesMarker() {}
+
+type repositoryCommitActivityVariables struct {
+	Owner   string  `json:"owner"`
+	Name    string  `json:"name"`
+	ActorID string  `json:"actorID"`
+	Cursor  *string `json:"cursor,omitempty"`
+}
+
+func (repositoryCommitActivityVariables) graphQLVariablesMarker() {}
+
+func marshalVariables(variables graphQLVariables) (json.RawMessage, error) {
+	encoded, err := json.Marshal(variables)
+	if err != nil {
+		slog.Error("marshal graphql variables", "error", err)
+		return nil, fmt.Errorf("marshal graphql variables: %w", err)
+	}
+	return encoded, nil
 }
 
 type viewerPageResponse struct {
@@ -131,34 +163,42 @@ func (client *Client) FetchViewerRepositories(ctx context.Context) (internalmode
 	externalCursor := ""
 
 	for {
-		var response graphQLResponse[viewerPageResponse]
-		variables := map[string]any{
-			"login":          client.actor,
-			"ownedCursor":    optionalCursor(ownedCursor),
-			"externalCursor": optionalCursor(externalCursor),
+		variables, err := marshalVariables(viewerRepositoriesVariables{
+			Login:          client.actor,
+			OwnedCursor:    optionalCursor(ownedCursor),
+			ExternalCursor: optionalCursor(externalCursor),
+		})
+		if err != nil {
+			return viewer, nil, nil, err
 		}
-		if err := client.doGraphQL(ctx, queryTemplate, variables, &response); err != nil {
+		envelope, err := client.doGraphQL(ctx, queryTemplate, variables)
+		if err != nil {
 			slog.ErrorContext(ctx, "fetch viewer repositories", "error", err)
 			return viewer, nil, nil, fmt.Errorf("fetch viewer repositories: %w", err)
 		}
-		if len(response.Errors) > 0 {
-			return viewer, nil, nil, fmt.Errorf("graphql error: %s", response.Errors[0].Message)
+		if len(envelope.Errors) > 0 {
+			return viewer, nil, nil, fmt.Errorf("graphql error: %s", envelope.Errors[0].Message)
+		}
+		var data viewerPageResponse
+		if err := json.Unmarshal(envelope.Data, &data); err != nil {
+			slog.ErrorContext(ctx, "decode viewer repositories", "error", err)
+			return viewer, nil, nil, fmt.Errorf("decode viewer repositories: %w", err)
 		}
 
-		viewer = internalmodel.ViewerSummary{Login: response.Data.User.Login, Name: response.Data.User.Name}
-		ownedRepositories = append(ownedRepositories, mapRepositories(response.Data.User.Repositories.Nodes, internalmodel.RepositorySourceOwned)...)
-		externalRepositories = append(externalRepositories, mapRepositories(response.Data.User.RepositoriesContributedTo.Nodes, internalmodel.RepositorySourceExternal)...)
+		viewer = internalmodel.ViewerSummary{Login: data.User.Login, Name: data.User.Name}
+		ownedRepositories = append(ownedRepositories, mapRepositories(data.User.Repositories.Nodes, internalmodel.RepositorySourceOwned)...)
+		externalRepositories = append(externalRepositories, mapRepositories(data.User.RepositoriesContributedTo.Nodes, internalmodel.RepositorySourceExternal)...)
 
-		ownedHasNext := response.Data.User.Repositories.PageInfo.HasNextPage
-		externalHasNext := response.Data.User.RepositoriesContributedTo.PageInfo.HasNextPage
+		ownedHasNext := data.User.Repositories.PageInfo.HasNextPage
+		externalHasNext := data.User.RepositoriesContributedTo.PageInfo.HasNextPage
 		if !ownedHasNext && !externalHasNext {
 			break
 		}
 		if ownedHasNext {
-			ownedCursor = response.Data.User.Repositories.PageInfo.EndCursor
+			ownedCursor = data.User.Repositories.PageInfo.EndCursor
 		}
 		if externalHasNext {
-			externalCursor = response.Data.User.RepositoriesContributedTo.PageInfo.EndCursor
+			externalCursor = data.User.RepositoriesContributedTo.PageInfo.EndCursor
 		}
 	}
 
@@ -170,17 +210,25 @@ func (client *Client) FetchTotalContributions(ctx context.Context) (int, error) 
 	if err != nil {
 		return 0, err
 	}
-	var yearsResponse graphQLResponse[contributionYearsResponse]
-	yearsVariables := map[string]any{"login": client.actor}
-	if err := client.doGraphQL(ctx, yearsQuery, yearsVariables, &yearsResponse); err != nil {
+	yearsVariables, err := marshalVariables(loginVariables{Login: client.actor})
+	if err != nil {
+		return 0, err
+	}
+	yearsEnvelope, err := client.doGraphQL(ctx, yearsQuery, yearsVariables)
+	if err != nil {
 		slog.ErrorContext(ctx, "fetch contribution years", "error", err)
 		return 0, fmt.Errorf("fetch contribution years: %w", err)
 	}
-	if len(yearsResponse.Errors) > 0 {
-		return 0, fmt.Errorf("graphql error: %s", yearsResponse.Errors[0].Message)
+	if len(yearsEnvelope.Errors) > 0 {
+		return 0, fmt.Errorf("graphql error: %s", yearsEnvelope.Errors[0].Message)
+	}
+	var yearsData contributionYearsResponse
+	if err := json.Unmarshal(yearsEnvelope.Data, &yearsData); err != nil {
+		slog.ErrorContext(ctx, "decode contribution years", "error", err)
+		return 0, fmt.Errorf("decode contribution years: %w", err)
 	}
 
-	years := yearsResponse.Data.User.ContributionsCollection.ContributionYears
+	years := yearsData.User.ContributionsCollection.ContributionYears
 	if len(years) == 0 {
 		return 0, nil
 	}
@@ -189,18 +237,26 @@ func (client *Client) FetchTotalContributions(ctx context.Context) (int, error) 
 	if err != nil {
 		return 0, err
 	}
-	var contributionsResponse graphQLResponse[contributionsByYearResponse]
-	contributionsVariables := map[string]any{"login": client.actor}
-	if err := client.doGraphQL(ctx, query, contributionsVariables, &contributionsResponse); err != nil {
+	contributionsVariables, err := marshalVariables(loginVariables{Login: client.actor})
+	if err != nil {
+		return 0, err
+	}
+	contributionsEnvelope, err := client.doGraphQL(ctx, query, contributionsVariables)
+	if err != nil {
 		slog.ErrorContext(ctx, "fetch contributions by year", "error", err)
 		return 0, fmt.Errorf("fetch contributions by year: %w", err)
 	}
-	if len(contributionsResponse.Errors) > 0 {
-		return 0, fmt.Errorf("graphql error: %s", contributionsResponse.Errors[0].Message)
+	if len(contributionsEnvelope.Errors) > 0 {
+		return 0, fmt.Errorf("graphql error: %s", contributionsEnvelope.Errors[0].Message)
+	}
+	var contributionsData contributionsByYearResponse
+	if err := json.Unmarshal(contributionsEnvelope.Data, &contributionsData); err != nil {
+		slog.ErrorContext(ctx, "decode contributions by year", "error", err)
+		return 0, fmt.Errorf("decode contributions by year: %w", err)
 	}
 
 	totalContributions := 0
-	for _, contribution := range contributionsResponse.Data.User {
+	for _, contribution := range contributionsData.User {
 		totalContributions += contribution.ContributionCalendar.TotalContributions
 	}
 	return totalContributions, nil
@@ -250,19 +306,27 @@ func (client *Client) fetchActorID(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	var response graphQLResponse[actorIDResponse]
-	variables := map[string]any{"login": client.actor}
-	if err := client.doGraphQL(ctx, query, variables, &response); err != nil {
+	variables, err := marshalVariables(loginVariables{Login: client.actor})
+	if err != nil {
+		return "", err
+	}
+	envelope, err := client.doGraphQL(ctx, query, variables)
+	if err != nil {
 		slog.ErrorContext(ctx, "fetch actor id", "actor", client.actor, "error", err)
 		return "", fmt.Errorf("fetch actor id: %w", err)
 	}
-	if len(response.Errors) > 0 {
-		return "", fmt.Errorf("graphql error: %s", response.Errors[0].Message)
+	if len(envelope.Errors) > 0 {
+		return "", fmt.Errorf("graphql error: %s", envelope.Errors[0].Message)
 	}
-	if response.Data.User.ID == "" {
+	var data actorIDResponse
+	if err := json.Unmarshal(envelope.Data, &data); err != nil {
+		slog.ErrorContext(ctx, "decode actor id", "error", err)
+		return "", fmt.Errorf("decode actor id: %w", err)
+	}
+	if data.User.ID == "" {
 		return "", fmt.Errorf("github actor %q not found", client.actor)
 	}
-	return response.Data.User.ID, nil
+	return data.User.ID, nil
 }
 
 func (client *Client) fetchRepositoryCommitActivity(ctx context.Context, query string, actorID string, owner string, repo string) (int, int, int, error) {
@@ -271,22 +335,30 @@ func (client *Client) fetchRepositoryCommitActivity(ctx context.Context, query s
 	deletions := 0
 	cursor := ""
 	for {
-		var response graphQLResponse[repositoryCommitActivityResponse]
-		variables := map[string]any{
-			"owner":   owner,
-			"name":    repo,
-			"actorID": actorID,
-			"cursor":  optionalCursor(cursor),
+		variables, err := marshalVariables(repositoryCommitActivityVariables{
+			Owner:   owner,
+			Name:    repo,
+			ActorID: actorID,
+			Cursor:  optionalCursor(cursor),
+		})
+		if err != nil {
+			return 0, 0, 0, err
 		}
-		if err := client.doGraphQL(ctx, query, variables, &response); err != nil {
+		envelope, err := client.doGraphQL(ctx, query, variables)
+		if err != nil {
 			slog.ErrorContext(ctx, "fetch repository commit activity", "repository", owner+"/"+repo, "error", err)
 			return 0, 0, 0, fmt.Errorf("fetch repository commit activity for %s/%s: %w", owner, repo, err)
 		}
-		if len(response.Errors) > 0 {
-			return 0, 0, 0, fmt.Errorf("graphql error: %s", response.Errors[0].Message)
+		if len(envelope.Errors) > 0 {
+			return 0, 0, 0, fmt.Errorf("graphql error: %s", envelope.Errors[0].Message)
+		}
+		var data repositoryCommitActivityResponse
+		if err := json.Unmarshal(envelope.Data, &data); err != nil {
+			slog.ErrorContext(ctx, "decode repository commit activity", "repository", owner+"/"+repo, "error", err)
+			return 0, 0, 0, fmt.Errorf("decode repository commit activity for %s/%s: %w", owner, repo, err)
 		}
 
-		history := response.Data.Repository.DefaultBranchRef.Target.History
+		history := data.Repository.DefaultBranchRef.Target.History
 		for _, commit := range history.Nodes {
 			additions += commit.Additions
 			deletions += commit.Deletions
@@ -339,12 +411,12 @@ func parseGitHubTime(value string) time.Time {
 	return parsedTime
 }
 
-func optionalCursor(cursor string) any {
+func optionalCursor(cursor string) *string {
 	trimmedCursor := strings.TrimSpace(cursor)
 	if trimmedCursor == "" {
 		return nil
 	}
-	return trimmedCursor
+	return &trimmedCursor
 }
 
 func buildContributionsByYearQuery(years []int) (string, error) {

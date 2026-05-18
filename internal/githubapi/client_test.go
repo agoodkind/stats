@@ -66,8 +66,14 @@ func TestDoGraphQLSendsVariables(t *testing.T) {
 				if payload.Query != "query Test($cursor: String) { viewer { login } }" {
 					t.Fatalf("unexpected GraphQL query %q", payload.Query)
 				}
-				if payload.Variables["cursor"] != "abc123" {
-					t.Fatalf("unexpected GraphQL variables %#v", payload.Variables)
+				var sentVariables struct {
+					Cursor string `json:"cursor"`
+				}
+				if err := json.Unmarshal(payload.Variables, &sentVariables); err != nil {
+					t.Fatalf("decode variables: %v", err)
+				}
+				if sentVariables.Cursor != "abc123" {
+					t.Fatalf("unexpected cursor variable %q", sentVariables.Cursor)
 				}
 
 				return &http.Response{
@@ -78,25 +84,28 @@ func TestDoGraphQLSendsVariables(t *testing.T) {
 		},
 	}
 
-	var response struct {
-		Data struct {
-			Viewer struct {
-				Login string `json:"login"`
-			} `json:"viewer"`
-		} `json:"data"`
+	variables, err := json.Marshal(map[string]string{"cursor": "abc123"})
+	if err != nil {
+		t.Fatalf("marshal test variables: %v", err)
 	}
-
-	err := client.doGraphQL(
+	envelope, err := client.doGraphQL(
 		context.Background(),
 		"query Test($cursor: String) { viewer { login } }",
-		map[string]any{"cursor": "abc123"},
-		&response,
+		variables,
 	)
 	if err != nil {
 		t.Fatalf("doGraphQL returned error: %v", err)
 	}
-	if response.Data.Viewer.Login != "me" {
-		t.Fatalf("unexpected viewer login %q", response.Data.Viewer.Login)
+	var response struct {
+		Viewer struct {
+			Login string `json:"login"`
+		} `json:"viewer"`
+	}
+	if err := json.Unmarshal(envelope.Data, &response); err != nil {
+		t.Fatalf("decode envelope data: %v", err)
+	}
+	if response.Viewer.Login != "me" {
+		t.Fatalf("unexpected viewer login %q", response.Viewer.Login)
 	}
 }
 
@@ -114,19 +123,23 @@ func TestFetchRepositoryCommitActivityPaginates(t *testing.T) {
 				if payload.Query != query {
 					t.Fatalf("unexpected GraphQL query %q", payload.Query)
 				}
-				if payload.Variables["owner"] != "agoodkind" {
-					t.Fatalf("unexpected owner variable %#v", payload.Variables["owner"])
+				var sentVariables repositoryCommitActivityVariables
+				if err := json.Unmarshal(payload.Variables, &sentVariables); err != nil {
+					t.Fatalf("decode variables: %v", err)
 				}
-				if payload.Variables["name"] != "stats-gh" {
-					t.Fatalf("unexpected name variable %#v", payload.Variables["name"])
+				if sentVariables.Owner != "agoodkind" {
+					t.Fatalf("unexpected owner variable %q", sentVariables.Owner)
 				}
-				if payload.Variables["actorID"] != "actor-id" {
-					t.Fatalf("unexpected actorID variable %#v", payload.Variables["actorID"])
+				if sentVariables.Name != "stats-gh" {
+					t.Fatalf("unexpected name variable %q", sentVariables.Name)
+				}
+				if sentVariables.ActorID != "actor-id" {
+					t.Fatalf("unexpected actorID variable %q", sentVariables.ActorID)
 				}
 
 				if requests == 1 {
-					if payload.Variables["cursor"] != nil {
-						t.Fatalf("unexpected first cursor %#v", payload.Variables["cursor"])
+					if sentVariables.Cursor != nil {
+						t.Fatalf("unexpected first cursor %#v", sentVariables.Cursor)
 					}
 					return &http.Response{
 						StatusCode: http.StatusOK,
@@ -134,8 +147,8 @@ func TestFetchRepositoryCommitActivityPaginates(t *testing.T) {
 					}, nil
 				}
 
-				if payload.Variables["cursor"] != "cursor-1" {
-					t.Fatalf("unexpected second cursor %#v", payload.Variables["cursor"])
+				if sentVariables.Cursor == nil || *sentVariables.Cursor != "cursor-1" {
+					t.Fatalf("unexpected second cursor %#v", sentVariables.Cursor)
 				}
 				return &http.Response{
 					StatusCode: http.StatusOK,

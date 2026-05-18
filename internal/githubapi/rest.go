@@ -2,6 +2,7 @@ package githubapi
 
 import (
 	"context"
+	"log/slog"
 
 	internalmodel "github.com/agoodkind/stats/internal/model"
 	github "github.com/google/go-github/v81/github"
@@ -9,11 +10,12 @@ import (
 
 func (client *Client) FetchViews(ctx context.Context, repositories []internalmodel.Repository) (int, error) {
 	totalViews := 0
-	options := &github.TrafficBreakdownOptions{Per: "week"}
+	options := &github.TrafficBreakdownOptions{Per: "day"}
 
 	for _, repository := range repositories {
 		owner, repo, err := splitRepositoryName(repository.NameWithOwner)
 		if err != nil {
+			slog.WarnContext(ctx, "skip views: repository name", "repository", repository.NameWithOwner, "error", err)
 			continue
 		}
 
@@ -22,6 +24,7 @@ func (client *Client) FetchViews(ctx context.Context, repositories []internalmod
 			if isAcceptedError(err) {
 				continue
 			}
+			slog.WarnContext(ctx, "skip views: fetch failed (does the token have push access to this repo?)", "repository", repository.NameWithOwner, "error", err)
 			continue
 		}
 		if views == nil {

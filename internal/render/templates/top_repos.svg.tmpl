@@ -91,7 +91,7 @@ tr {
 <table>
 <tbody>
 {{ range $index, $repo := .Repos }}
-<tr style="animation-delay: {{ multiply $index 150 }}ms">
+<tr style="animation-delay: {{ $repo.AnimationDelayMs }}ms">
 <td width="50%"><div>{{ $repo.RepositoryName }}</div></td>
 <td width="30%">
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">

@@ -30,8 +30,13 @@ type Client struct {
 }
 
 type graphQLRequest struct {
-	Query     string         `json:"query"`
-	Variables map[string]any `json:"variables,omitempty"`
+	Query     string          `json:"query"`
+	Variables json.RawMessage `json:"variables,omitempty"`
+}
+
+type graphQLEnvelope struct {
+	Data   json.RawMessage `json:"data"`
+	Errors []graphQLError  `json:"errors"`
 }
 
 type rateLimitedTransport struct {
@@ -57,48 +62,46 @@ func NewClient(cfg internalconfig.Config) *Client {
 	}
 }
 
-func (client *Client) doGraphQL(ctx context.Context, query string, variables map[string]any, output any) error {
+func (client *Client) doGraphQL(ctx context.Context, query string, variables json.RawMessage) (graphQLEnvelope, error) {
 	payload, err := json.Marshal(graphQLRequest{Query: query, Variables: variables})
 	if err != nil {
 		slog.ErrorContext(ctx, "marshal graphql request", "error", err)
-		return fmt.Errorf("marshal graphql request: %w", err)
+		return graphQLEnvelope{}, fmt.Errorf("marshal graphql request: %w", err)
 	}
 
 	request, err := http.NewRequestWithContext(ctx, http.MethodPost, defaultGraphQLEndpoint, bytes.NewReader(payload))
 	if err != nil {
 		slog.ErrorContext(ctx, "create graphql request", "error", err)
-		return fmt.Errorf("create graphql request: %w", err)
+		return graphQLEnvelope{}, fmt.Errorf("create graphql request: %w", err)
 	}
 	request.Header.Set("Content-Type", "application/json")
 
 	response, err := client.httpClient.Do(request)
 	if err != nil {
 		slog.ErrorContext(ctx, "perform graphql request", "error", err)
-		return fmt.Errorf("perform graphql request: %w", err)
+		return graphQLEnvelope{}, fmt.Errorf("perform graphql request: %w", err)
 	}
 
 	responseBody, readErr := io.ReadAll(response.Body)
 	closeErr := response.Body.Close()
 	if readErr != nil {
 		slog.ErrorContext(ctx, "read graphql response", "error", readErr)
-		return fmt.Errorf("read graphql response: %w", readErr)
+		return graphQLEnvelope{}, fmt.Errorf("read graphql response: %w", readErr)
 	}
 	if closeErr != nil {
 		slog.ErrorContext(ctx, "close graphql response body", "error", closeErr)
-		return fmt.Errorf("close graphql response body: %w", closeErr)
+		return graphQLEnvelope{}, fmt.Errorf("close graphql response body: %w", closeErr)
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		responseText := strings.TrimSpace(string(responseBody))
-		return fmt.Errorf("graphql returned %d: %s", response.StatusCode, responseText)
+		return graphQLEnvelope{}, fmt.Errorf("graphql returned %d: %s", response.StatusCode, responseText)
 	}
-	if output == nil {
-		return nil
-	}
-	if err := json.Unmarshal(responseBody, output); err != nil {
+	var envelope graphQLEnvelope
+	if err := json.Unmarshal(responseBody, &envelope); err != nil {
 		slog.ErrorContext(ctx, "decode graphql response", "error", err)
-		return fmt.Errorf("decode graphql response: %w", err)
+		return graphQLEnvelope{}, fmt.Errorf("decode graphql response: %w", err)
 	}
-	return nil
+	return envelope, nil
 }
 
 func (transport *rateLimitedTransport) RoundTrip(request *http.Request) (*http.Response, error) {

@@ -30,6 +30,10 @@ const (
 
 var hexColorPattern = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
 
+type svgTemplateData interface {
+	svgTemplateMarker()
+}
+
 type overviewTemplateData struct {
 	Name               string
 	Stars              string
@@ -40,15 +44,20 @@ type overviewTemplateData struct {
 	RepositoryCount    string
 }
 
+func (overviewTemplateData) svgTemplateMarker() {}
+
 type languageTemplateData struct {
 	Items []languageTemplateItem
 }
+
+func (languageTemplateData) svgTemplateMarker() {}
 
 type languageTemplateItem struct {
 	Name              string
 	Color             string
 	PercentageValue   float64
 	PercentageDisplay string
+	AnimationDelayMs  int
 }
 
 type topRepoView struct {
@@ -56,12 +65,17 @@ type topRepoView struct {
 	Display             string
 	Color               string
 	WidthDisplayPercent string
+	AnimationDelayMs    int
 }
 
 type topReposTemplateData struct {
 	Name  string
 	Repos []topRepoView
 }
+
+func (topReposTemplateData) svgTemplateMarker() {}
+
+const animationDelayStepMs = 150
 
 func WriteSVGs(summary internalmodel.StatsSummary) error {
 	if err := os.MkdirAll(generatedDirectory, 0o755); err != nil {
@@ -77,13 +91,8 @@ func WriteSVGs(summary internalmodel.StatsSummary) error {
 	return writeTemplate(filepath.Join(generatedDirectory, "top_repos.svg"), topReposTemplatePath, buildTopReposTemplateData(summary.Overview.Name, summary.TopRepos))
 }
 
-func writeTemplate(outputPath string, templatePath string, data any) error {
-	funcMap := template.FuncMap{
-		"multiply": func(left int, right int) int {
-			return left * right
-		},
-	}
-	parsedTemplate, err := template.New(filepath.Base(templatePath)).Funcs(funcMap).ParseFS(embeddedTemplates, templatePath)
+func writeTemplate(outputPath string, templatePath string, data svgTemplateData) error {
+	parsedTemplate, err := template.New(filepath.Base(templatePath)).ParseFS(embeddedTemplates, templatePath)
 	if err != nil {
 		slog.Error("parse svg template", "template", templatePath, "error", err)
 		return fmt.Errorf("parse template %q: %w", templatePath, err)
@@ -117,13 +126,14 @@ func buildOverviewTemplateData(overview internalmodel.OverviewStats) overviewTem
 
 func buildLanguageTemplateData(languages []internalmodel.LanguageStat) languageTemplateData {
 	items := make([]languageTemplateItem, 0, len(languages))
-	for _, language := range languages {
+	for index, language := range languages {
 		percentage := clampPercentage(language.Percentage)
 		items = append(items, languageTemplateItem{
 			Name:              strings.TrimSpace(language.Name),
 			Color:             sanitizeColor(language.Color),
 			PercentageValue:   percentage,
 			PercentageDisplay: fmt.Sprintf("%.2f", percentage),
+			AnimationDelayMs:  index * animationDelayStepMs,
 		})
 	}
 	return languageTemplateData{Items: items}
@@ -153,6 +163,7 @@ func buildTopReposTemplateData(name string, repos []internalmodel.RepoActivity) 
 			Display:             fmt.Sprintf("%s · ★%s", formatInteger(repo.Commits), formatInteger(repo.Stars)),
 			Color:               sanitizeColor(colors[index%len(colors)]),
 			WidthDisplayPercent: fmt.Sprintf("%.2f", clampPercentage(width)),
+			AnimationDelayMs:    index * animationDelayStepMs,
 		})
 	}
 

@@ -10,32 +10,41 @@ import (
 
 // FetchViews sums the trailing-14-day traffic view counts across every owned
 // repository. Repos the token lacks push access to return 403 and are skipped
-// with a warning log.
+// with a warning log. Emits a summary log at the end so a glance at the
+// workflow output reveals whether the token has the right scope.
 func (client *Client) FetchViews(ctx context.Context, repositories []internalmodel.Repository) (int, error) {
 	totalViews := 0
+	succeeded := 0
+	failed := 0
+	pending := 0
 	options := &github.TrafficBreakdownOptions{Per: "day"}
 
 	for _, repository := range repositories {
 		owner, repo, err := splitRepositoryName(repository.NameWithOwner)
 		if err != nil {
 			slog.WarnContext(ctx, "skip views: repository name", "repository", repository.NameWithOwner, "error", err)
+			failed += 1
 			continue
 		}
 
 		views, _, err := client.rest.Repositories.ListTrafficViews(ctx, owner, repo, options)
 		if err != nil {
 			if isAcceptedError(err) {
+				pending += 1
 				continue
 			}
 			slog.WarnContext(ctx, "skip views: fetch failed (does the token have push access to this repo?)", "repository", repository.NameWithOwner, "error", err)
+			failed += 1
 			continue
 		}
 		if views == nil {
 			continue
 		}
+		succeeded += 1
 		totalViews += views.GetCount()
 	}
 
+	slog.InfoContext(ctx, "views summary", "total", totalViews, "succeeded", succeeded, "failed", failed, "pending", pending, "repos", len(repositories))
 	return totalViews, nil
 }
 

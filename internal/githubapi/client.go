@@ -119,13 +119,32 @@ func (transport *rateLimitedTransport) RoundTrip(request *http.Request) (*http.R
 		slog.ErrorContext(request.Context(), "github transport round trip", "error", err)
 		return nil, fmt.Errorf("github transport round trip: %w", err)
 	}
-	if response.StatusCode != http.StatusForbidden && response.StatusCode != http.StatusTooManyRequests {
+	if !isRateLimited(response) {
 		return response, nil
 	}
 
 	retryAfter := strings.TrimSpace(response.Header.Get("Retry-After"))
 	resetAt := strings.TrimSpace(response.Header.Get("X-Ratelimit-Reset"))
 	return nil, fmt.Errorf("github rate limit response %d, retry-after=%q, reset=%q", response.StatusCode, retryAfter, resetAt)
+}
+
+// isRateLimited returns true only when the response actually indicates a
+// primary or secondary rate-limit, not for every 403. A 403 with a non-zero
+// X-Ratelimit-Remaining header is a permissions / scope failure and should
+// be surfaced to the caller as a normal error rather than masquerading as a
+// rate-limit.
+func isRateLimited(response *http.Response) bool {
+	if response.StatusCode == http.StatusTooManyRequests {
+		return true
+	}
+	if response.StatusCode != http.StatusForbidden {
+		return false
+	}
+	if response.Header.Get("Retry-After") != "" {
+		return true
+	}
+	remaining := strings.TrimSpace(response.Header.Get("X-Ratelimit-Remaining"))
+	return remaining == "0"
 }
 
 func splitRepositoryName(nameWithOwner string) (string, string, error) {

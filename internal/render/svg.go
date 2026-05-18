@@ -31,8 +31,8 @@ const (
 	topRepoMinBarPercent     = 25.0
 	// languagesChromeHeight covers the h2, the progress bar, and the
 	// foreignObject vertical chrome above and below the language pills.
-	languagesChromeHeight   = 78
-	languagesItemRowHeight  = 20
+	languagesChromeHeight   = 86
+	languagesItemRowHeight  = 22
 	languagesItemsPerRowAvg = 2
 	languagesMinSVGHeight   = 140
 )

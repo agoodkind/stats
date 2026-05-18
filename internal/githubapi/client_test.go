@@ -145,15 +145,15 @@ func TestFetchRepositoryCommitActivityPaginates(t *testing.T) {
 		},
 	}
 
-	activity, additions, deletions, err := client.fetchRepositoryCommitActivity(context.Background(), query, "actor-id", "agoodkind", "stats-gh")
+	commits, additions, deletions, err := client.fetchRepositoryCommitActivity(context.Background(), query, "actor-id", "agoodkind", "stats-gh")
 	if err != nil {
 		t.Fatalf("fetchRepositoryCommitActivity returned error: %v", err)
 	}
 	if requests != 2 {
 		t.Fatalf("unexpected request count %d", requests)
 	}
-	if activity != 20 {
-		t.Fatalf("unexpected activity %d", activity)
+	if commits != 2 {
+		t.Fatalf("unexpected commit count %d", commits)
 	}
 	if additions != 12 {
 		t.Fatalf("unexpected additions %d", additions)

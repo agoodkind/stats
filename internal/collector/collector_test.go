@@ -235,11 +235,8 @@ func assertTopReposOrdering(t *testing.T, repos []internalmodel.RepoActivity) {
 
 	expected := []string{
 		"me/recent-go",
-		"me/shared-sdk",
 		"me/older-rust",
-		"me/forked-go",
-		"me/archived-old",
-		"me/excluded-repo",
+		"me/shared-sdk",
 	}
 	actual := make([]string, 0, len(repos))
 	for _, repository := range repos {
@@ -247,6 +244,20 @@ func assertTopReposOrdering(t *testing.T, repos []internalmodel.RepoActivity) {
 	}
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("unexpected top repo order: got %v want %v", actual, expected)
+	}
+
+	for _, repository := range repos {
+		if repository.Score <= 0 {
+			t.Fatalf("expected positive top-repo score for %q, got %.6f", repository.RepositoryName, repository.Score)
+		}
+	}
+	for index := 1; index < len(repos); index += 1 {
+		if repos[index-1].Score < repos[index].Score {
+			t.Fatalf("expected top repos sorted by score desc, got %.6f before %.6f", repos[index-1].Score, repos[index].Score)
+		}
+	}
+	if repos[0].RepositoryName != "me/recent-go" || repos[0].Commits != 50 || repos[0].Stars != 10 {
+		t.Fatalf("unexpected top repo commits/stars: %+v", repos[0])
 	}
 }
 

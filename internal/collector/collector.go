@@ -69,15 +69,7 @@ func (collector *Collector) Collect(ctx context.Context, cfg internalconfig.Conf
 		effectiveLanguage = mergeLanguageStats(weightedOwned, externalEstimatedLanguage)
 	}
 
-	sort.Slice(activities, func(left int, right int) bool {
-		if activities[left].Activity == activities[right].Activity {
-			return activities[left].RepositoryName < activities[right].RepositoryName
-		}
-		return activities[left].Activity > activities[right].Activity
-	})
-	if len(activities) > 6 {
-		activities = activities[:6]
-	}
+	topRepos := collector.rankTopRepos(cfg, ownedRepositories, activities)
 
 	sort.Slice(externalEstimates, func(left int, right int) bool {
 		if externalEstimates[left].WeightedEstimatedBytes == externalEstimates[right].WeightedEstimatedBytes {
@@ -102,7 +94,7 @@ func (collector *Collector) Collect(ctx context.Context, cfg internalconfig.Conf
 			RepositoryCount:    len(ownedRepositories),
 		},
 		Languages: effectiveLanguage,
-		TopRepos:  activities,
+		TopRepos:  topRepos,
 		Diagnostics: internalmodel.DiagnosticsReport{
 			Scope:                     diagnosticsScope,
 			Summary:                   buildDiagnosticsSummary(cfg, len(ownedRepositories), len(externalRepositories), includedOwnedCount, weightedOwned, externalEstimates),
@@ -116,6 +108,40 @@ func (collector *Collector) Collect(ctx context.Context, cfg internalconfig.Conf
 		},
 		Repositories: ownedRepositories,
 	}, nil
+}
+
+const topRepoLimit = 6
+
+func (collector *Collector) rankTopRepos(cfg internalconfig.Config, ownedRepositories []internalmodel.Repository, activities []internalmodel.RepoActivity) []internalmodel.RepoActivity {
+	repositoryByName := make(map[string]internalmodel.Repository, len(ownedRepositories))
+	for _, repository := range ownedRepositories {
+		repositoryByName[repository.NameWithOwner] = repository
+	}
+
+	ranked := make([]internalmodel.RepoActivity, 0, len(activities))
+	for _, activity := range activities {
+		repository, found := repositoryByName[activity.RepositoryName]
+		if !found {
+			continue
+		}
+		if repositoryExclusionReason(cfg, repository, sumRepositoryBytes(repository)) != "" {
+			continue
+		}
+		activity.Stars = repository.Stars
+		activity.Score = (math.Log10(1+float64(activity.Commits)) + math.Log10(1+float64(activity.Stars))) * collector.recencyWeight(cfg, repository)
+		ranked = append(ranked, activity)
+	}
+
+	sort.Slice(ranked, func(left int, right int) bool {
+		if ranked[left].Score == ranked[right].Score {
+			return ranked[left].RepositoryName < ranked[right].RepositoryName
+		}
+		return ranked[left].Score > ranked[right].Score
+	})
+	if len(ranked) > topRepoLimit {
+		ranked = ranked[:topRepoLimit]
+	}
+	return ranked
 }
 
 func (collector *Collector) collectLanguages(cfg internalconfig.Config, repositories []internalmodel.Repository) ([]internalmodel.LanguageStat, []internalmodel.LanguageStat, []internalmodel.InclusionDecision, int) {

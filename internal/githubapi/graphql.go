@@ -225,18 +225,18 @@ func (client *Client) FetchContributorActivity(ctx context.Context, repositories
 			continue
 		}
 
-		activity, additions, deletions, err := client.fetchRepositoryCommitActivity(ctx, activityQuery, actorID, owner, repo)
+		commits, additions, deletions, err := client.fetchRepositoryCommitActivity(ctx, activityQuery, actorID, owner, repo)
 		if err != nil {
 			slog.ErrorContext(ctx, "skip repository commit activity", "repository", repository.NameWithOwner, "error", err)
 			continue
 		}
-		if activity <= 0 {
+		if commits <= 0 {
 			continue
 		}
 
 		activities = append(activities, internalmodel.RepoActivity{
 			RepositoryName: repository.NameWithOwner,
-			Activity:       activity,
+			Commits:        commits,
 		})
 		totalAdditions += additions
 		totalDeletions += deletions
@@ -266,7 +266,7 @@ func (client *Client) fetchActorID(ctx context.Context) (string, error) {
 }
 
 func (client *Client) fetchRepositoryCommitActivity(ctx context.Context, query string, actorID string, owner string, repo string) (int, int, int, error) {
-	activity := 0
+	commits := 0
 	additions := 0
 	deletions := 0
 	cursor := ""
@@ -291,13 +291,13 @@ func (client *Client) fetchRepositoryCommitActivity(ctx context.Context, query s
 			additions += commit.Additions
 			deletions += commit.Deletions
 		}
-		activity = additions + deletions
+		commits += len(history.Nodes)
 		if !history.PageInfo.HasNextPage {
 			break
 		}
 		cursor = history.PageInfo.EndCursor
 	}
-	return activity, additions, deletions, nil
+	return commits, additions, deletions, nil
 }
 
 func mapRepositories(nodes []repositoryNode, source internalmodel.RepositorySource) []internalmodel.Repository {

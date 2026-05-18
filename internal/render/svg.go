@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"log/slog"
+	"math"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -24,6 +25,7 @@ const (
 	topReposTemplatePath     = "templates/top_repos.svg.tmpl"
 	fallbackColor            = "#586069"
 	topRepositoryNameDefault = "Top GitHub Repos"
+	topRepoMinBarPercent     = 25.0
 )
 
 var hexColorPattern = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
@@ -51,7 +53,7 @@ type languageTemplateItem struct {
 
 type topRepoView struct {
 	RepositoryName      string
-	Activity            string
+	Display             string
 	Color               string
 	WidthDisplayPercent string
 }
@@ -128,22 +130,27 @@ func buildLanguageTemplateData(languages []internalmodel.LanguageStat) languageT
 }
 
 func buildTopReposTemplateData(name string, repos []internalmodel.RepoActivity) topReposTemplateData {
-	maxActivity := 0
+	maxScore := 0.0
+	minScore := math.MaxFloat64
 	for _, repo := range repos {
-		if repo.Activity > maxActivity {
-			maxActivity = repo.Activity
+		if repo.Score > maxScore {
+			maxScore = repo.Score
+		}
+		if repo.Score < minScore {
+			minScore = repo.Score
 		}
 	}
+	scoreRange := maxScore - minScore
 	colors := []string{"#3572A5", "#555555", "#3178c6", "#DA3434", "#89e051", "#00ADD8"}
 	rows := make([]topRepoView, 0, len(repos))
 	for index, repo := range repos {
-		width := 0.0
-		if maxActivity > 0 {
-			width = 100 * float64(repo.Activity) / float64(maxActivity)
+		width := 100.0
+		if scoreRange > 0 {
+			width = topRepoMinBarPercent + (repo.Score-minScore)/scoreRange*(100-topRepoMinBarPercent)
 		}
 		rows = append(rows, topRepoView{
-			RepositoryName:      strings.TrimSpace(repo.RepositoryName),
-			Activity:            formatInteger(repo.Activity),
+			RepositoryName:      stripOwnerPrefix(strings.TrimSpace(repo.RepositoryName)),
+			Display:             fmt.Sprintf("%s · ★%s", formatInteger(repo.Commits), formatInteger(repo.Stars)),
 			Color:               sanitizeColor(colors[index%len(colors)]),
 			WidthDisplayPercent: fmt.Sprintf("%.2f", clampPercentage(width)),
 		})
@@ -154,6 +161,13 @@ func buildTopReposTemplateData(name string, repos []internalmodel.RepoActivity) 
 		displayName = topRepositoryNameDefault
 	}
 	return topReposTemplateData{Name: displayName, Repos: rows}
+}
+
+func stripOwnerPrefix(repositoryName string) string {
+	if index := strings.Index(repositoryName, "/"); index >= 0 {
+		return repositoryName[index+1:]
+	}
+	return repositoryName
 }
 
 func sanitizeColor(color string) string {

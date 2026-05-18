@@ -21,8 +21,8 @@ func TestRateLimitedTransportSetsGitHubHeaders(t *testing.T) {
 			if request.Header.Get("Accept") != "application/vnd.github+json" {
 				t.Fatalf("unexpected Accept header %q", request.Header.Get("Accept"))
 			}
-			if request.Header.Get("X-GitHub-Api-Version") != "2026-03-10" {
-				t.Fatalf("unexpected X-GitHub-Api-Version header %q", request.Header.Get("X-GitHub-Api-Version"))
+			if request.Header.Get("X-Github-Api-Version") != "2026-03-10" {
+				t.Fatalf("unexpected X-Github-Api-Version header %q", request.Header.Get("X-Github-Api-Version"))
 			}
 			return &http.Response{
 				StatusCode: http.StatusOK,

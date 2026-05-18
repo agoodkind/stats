@@ -1,3 +1,5 @@
+// Package githubapi wraps the GitHub REST and GraphQL APIs that stats-gh
+// uses, including a rate-limit-aware HTTP transport and typed query helpers.
 package githubapi
 
 import (
@@ -23,6 +25,8 @@ const (
 	defaultRESTAPIVersion  = "2026-03-10"
 )
 
+// Client is the stats-gh GitHub API wrapper, holding the REST client and the
+// authenticated viewer login it should query on behalf of.
 type Client struct {
 	httpClient *http.Client
 	rest       *github.Client
@@ -43,6 +47,8 @@ type rateLimitedTransport struct {
 	base http.RoundTripper
 }
 
+// NewClient returns a Client configured from the given Config, using OAuth2
+// bearer authentication on every outbound HTTP request.
 func NewClient(cfg internalconfig.Config) *Client {
 	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: cfg.GitHubToken})
 	httpClient := &http.Client{
@@ -106,18 +112,19 @@ func (client *Client) doGraphQL(ctx context.Context, query string, variables jso
 
 func (transport *rateLimitedTransport) RoundTrip(request *http.Request) (*http.Response, error) {
 	request.Header.Set("Accept", "application/vnd.github+json")
-	request.Header.Set("X-GitHub-Api-Version", defaultRESTAPIVersion)
+	request.Header.Set("X-Github-Api-Version", defaultRESTAPIVersion)
 
 	response, err := transport.base.RoundTrip(request)
 	if err != nil {
-		return nil, err
+		slog.ErrorContext(request.Context(), "github transport round trip", "error", err)
+		return nil, fmt.Errorf("github transport round trip: %w", err)
 	}
 	if response.StatusCode != http.StatusForbidden && response.StatusCode != http.StatusTooManyRequests {
 		return response, nil
 	}
 
 	retryAfter := strings.TrimSpace(response.Header.Get("Retry-After"))
-	resetAt := strings.TrimSpace(response.Header.Get("X-RateLimit-Reset"))
+	resetAt := strings.TrimSpace(response.Header.Get("X-Ratelimit-Reset"))
 	return nil, fmt.Errorf("github rate limit response %d, retry-after=%q, reset=%q", response.StatusCode, retryAfter, resetAt)
 }
 

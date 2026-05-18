@@ -1,3 +1,5 @@
+// Package render turns a collected StatsSummary into the overview, languages,
+// and top_repos SVG files written under generated/.
 package render
 
 import (
@@ -10,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	internalmodel "github.com/agoodkind/stats/internal/model"
@@ -77,6 +80,8 @@ func (topReposTemplateData) svgTemplateMarker() {}
 
 const animationDelayStepMs = 150
 
+// WriteSVGs renders the three stats-gh SVGs (overview, languages, top_repos)
+// from the supplied summary into the generated/ directory.
 func WriteSVGs(summary internalmodel.StatsSummary) error {
 	if err := os.MkdirAll(generatedDirectory, 0o755); err != nil {
 		slog.Error("create generated directory", "directory", generatedDirectory, "error", err)
@@ -105,7 +110,7 @@ func writeTemplate(outputPath string, templatePath string, data svgTemplateData)
 	}
 
 	output := strings.ReplaceAll(buffer.String(), "GH_DARK_MODE_ONLY", "gh-dark-mode-only")
-	if err := os.WriteFile(outputPath, []byte(output), 0o644); err != nil {
+	if err := os.WriteFile(outputPath, []byte(output), 0o600); err != nil {
 		slog.Error("write svg", "path", outputPath, "error", err)
 		return fmt.Errorf("write svg %q: %w", outputPath, err)
 	}
@@ -175,8 +180,8 @@ func buildTopReposTemplateData(name string, repos []internalmodel.RepoActivity) 
 }
 
 func stripOwnerPrefix(repositoryName string) string {
-	if index := strings.Index(repositoryName, "/"); index >= 0 {
-		return repositoryName[index+1:]
+	if _, after, found := strings.Cut(repositoryName, "/"); found {
+		return after
 	}
 	return repositoryName
 }
@@ -190,7 +195,7 @@ func sanitizeColor(color string) string {
 }
 
 func formatInteger(value int) string {
-	valueText := fmt.Sprintf("%d", value)
+	valueText := strconv.Itoa(value)
 	if value < 0 {
 		return "-" + formatPositiveInteger(valueText[1:])
 	}

@@ -1,9 +1,13 @@
+// Package collector aggregates GitHub-sourced repository data into the
+// rendered StatsSummary and diagnostics report, applying repo-exclusion and
+// recency-weighting rules along the way.
 package collector
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"math"
 	"sort"
 	"strings"
@@ -23,6 +27,8 @@ type githubService interface {
 	EstimateExternalContributions(ctx context.Context, repositories []internalmodel.Repository) ([]internalmodel.ExternalContributionEstimate, error)
 }
 
+// Collector orchestrates the GitHub API fetches and aggregation rules that
+// produce a StatsSummary.
 type Collector struct {
 	client githubService
 	now    func() time.Time
@@ -35,32 +41,41 @@ type languageAccumulator struct {
 	weighted float64
 }
 
+// New returns a Collector wired to the given GitHub service, using [time.Now]
+// for recency calculations.
 func New(client githubService) *Collector {
 	return &Collector{client: client, now: time.Now}
 }
 
+// Collect runs every GitHub fetch in sequence and assembles a StatsSummary
+// plus a detailed diagnostics report.
 func (collector *Collector) Collect(ctx context.Context, cfg internalconfig.Config) (internalmodel.StatsSummary, error) {
 	viewer, ownedRepositories, externalRepositories, err := collector.client.FetchViewerRepositories(ctx)
 	if err != nil {
-		return internalmodel.StatsSummary{}, err
+		slog.ErrorContext(ctx, "fetch viewer repositories", "error", err)
+		return internalmodel.StatsSummary{}, fmt.Errorf("fetch viewer repositories: %w", err)
 	}
 
 	weightedOwned, rawOwned, decisions, includedOwnedCount := collector.collectLanguages(cfg, ownedRepositories)
 	contributionCount, err := collector.client.FetchTotalContributions(ctx)
 	if err != nil {
-		return internalmodel.StatsSummary{}, err
+		slog.ErrorContext(ctx, "fetch total contributions", "error", err)
+		return internalmodel.StatsSummary{}, fmt.Errorf("fetch total contributions: %w", err)
 	}
 	activities, additions, deletions, err := collector.client.FetchContributorActivity(ctx, ownedRepositories)
 	if err != nil {
-		return internalmodel.StatsSummary{}, err
+		slog.ErrorContext(ctx, "fetch contributor activity", "error", err)
+		return internalmodel.StatsSummary{}, fmt.Errorf("fetch contributor activity: %w", err)
 	}
 	views, err := collector.client.FetchViews(ctx, ownedRepositories)
 	if err != nil {
-		return internalmodel.StatsSummary{}, err
+		slog.ErrorContext(ctx, "fetch views", "error", err)
+		return internalmodel.StatsSummary{}, fmt.Errorf("fetch views: %w", err)
 	}
 	externalEstimates, err := collector.client.EstimateExternalContributions(ctx, externalRepositories)
 	if err != nil {
-		return internalmodel.StatsSummary{}, err
+		slog.ErrorContext(ctx, "estimate external contributions", "error", err)
+		return internalmodel.StatsSummary{}, fmt.Errorf("estimate external contributions: %w", err)
 	}
 	collector.applyExternalWeights(cfg, externalRepositories, externalEstimates)
 	externalEstimatedLanguage := aggregateExternalLanguages(cfg, externalEstimates)
@@ -394,6 +409,8 @@ func sumRepositoryForks(repositories []internalmodel.Repository) int {
 	return total
 }
 
+// FormatDiagnostics renders a DiagnosticsReport as pretty-printed JSON
+// suitable for the diagnose subcommand's output.
 func FormatDiagnostics(report internalmodel.DiagnosticsReport) string {
 	encoded, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {

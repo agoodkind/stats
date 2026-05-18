@@ -8,6 +8,9 @@ import (
 	github "github.com/google/go-github/v81/github"
 )
 
+// FetchViews sums the trailing-14-day traffic view counts across every owned
+// repository. Repos the token lacks push access to return 403 and are skipped
+// with a warning log.
 func (client *Client) FetchViews(ctx context.Context, repositories []internalmodel.Repository) (int, error) {
 	totalViews := 0
 	options := &github.TrafficBreakdownOptions{Per: "day"}
@@ -36,6 +39,10 @@ func (client *Client) FetchViews(ctx context.Context, repositories []internalmod
 	return totalViews, nil
 }
 
+// EstimateExternalContributions approximates the viewer's contribution share
+// for each external repository by ratio of their additions+deletions to the
+// repo's total contributor activity, then scales the repo's language bytes by
+// that ratio.
 func (client *Client) EstimateExternalContributions(ctx context.Context, repositories []internalmodel.Repository) ([]internalmodel.ExternalContributionEstimate, error) {
 	estimates := make([]internalmodel.ExternalContributionEstimate, 0, len(repositories))
 

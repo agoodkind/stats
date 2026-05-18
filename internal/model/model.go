@@ -1,19 +1,30 @@
+// Package model defines the data shapes shared across the GitHub fetch,
+// aggregation, rendering, and diagnostics layers of stats-gh.
 package model
 
 import "time"
 
+// RepositorySource distinguishes repositories the viewer owns from those they
+// merely contribute to.
 type RepositorySource string
 
 const (
-	RepositorySourceOwned    RepositorySource = "owned"
+	// RepositorySourceOwned marks a repository that the configured actor owns.
+	RepositorySourceOwned RepositorySource = "owned"
+	// RepositorySourceExternal marks a repository the actor only contributes
+	// to and does not own.
 	RepositorySourceExternal RepositorySource = "external"
 )
 
+// ViewerSummary holds the authenticated user's display identity used to title
+// the rendered SVGs.
 type ViewerSummary struct {
 	Login string `json:"login"`
 	Name  string `json:"name"`
 }
 
+// LanguageStat is one slice of the language-breakdown pie, with both raw and
+// recency-weighted byte totals plus the rendered percentage.
 type LanguageStat struct {
 	Name       string  `json:"name"`
 	Color      string  `json:"color"`
@@ -22,12 +33,16 @@ type LanguageStat struct {
 	Percentage float64 `json:"percentage"`
 }
 
+// RepositoryLanguage carries a single language's byte count for one
+// repository, as reported by the GraphQL languages edge.
 type RepositoryLanguage struct {
 	Name  string `json:"name"`
 	Color string `json:"color"`
 	Bytes int    `json:"bytes"`
 }
 
+// Repository is the post-fetch projection of a GitHub repository node, with
+// only the fields stats-gh uses.
 type Repository struct {
 	NameWithOwner string               `json:"nameWithOwner"`
 	Source        RepositorySource     `json:"source"`
@@ -41,6 +56,8 @@ type Repository struct {
 	Languages     []RepositoryLanguage `json:"languages"`
 }
 
+// InclusionDecision records why a repository was included in or excluded from
+// the aggregated language stats, for diagnostics output.
 type InclusionDecision struct {
 	RepositoryName string           `json:"repositoryName"`
 	Source         RepositorySource `json:"source"`
@@ -53,6 +70,8 @@ type InclusionDecision struct {
 	UpdatedAt      time.Time        `json:"updatedAt"`
 }
 
+// RepoActivity is one row of the top-repos chart: a repository plus its
+// commits, stars, and composite score.
 type RepoActivity struct {
 	RepositoryName string  `json:"repositoryName"`
 	Commits        int     `json:"commits"`
@@ -60,6 +79,9 @@ type RepoActivity struct {
 	Score          float64 `json:"score"`
 }
 
+// ExternalContributionEstimate represents an approximated share of an external
+// repository's language bytes that the viewer is credited with, derived from
+// contributor stats.
 type ExternalContributionEstimate struct {
 	RepositoryName         string         `json:"repositoryName"`
 	Method                 string         `json:"method"`
@@ -72,6 +94,8 @@ type ExternalContributionEstimate struct {
 	EstimateNote           string         `json:"estimateNote"`
 }
 
+// OverviewStats backs the overview SVG: totals across the viewer's owned
+// repositories.
 type OverviewStats struct {
 	Name               string `json:"name"`
 	Stars              int    `json:"stars"`
@@ -82,6 +106,8 @@ type OverviewStats struct {
 	RepositoryCount    int    `json:"repositoryCount"`
 }
 
+// DiagnosticsSummary is the high-level scoreboard at the top of the
+// diagnostics report (counts, totals, flags).
 type DiagnosticsSummary struct {
 	OwnedRepositoryCount    int     `json:"ownedRepositoryCount"`
 	ExternalRepositoryCount int     `json:"externalRepositoryCount"`
@@ -94,6 +120,9 @@ type DiagnosticsSummary struct {
 	ExternalWeightedBytes   float64 `json:"externalWeightedBytes"`
 }
 
+// DiagnosticsReport is the full breakdown the diagnose subcommand emits: per
+// repository decisions, language stats both weighted and raw, and external
+// estimates.
 type DiagnosticsReport struct {
 	Scope                     string                         `json:"scope"`
 	Summary                   DiagnosticsSummary             `json:"summary"`
@@ -106,6 +135,9 @@ type DiagnosticsReport struct {
 	Decisions                 []InclusionDecision            `json:"decisions"`
 }
 
+// StatsSummary is the top-level result handed from the collector to the
+// renderer, bundling everything needed to produce the SVGs and the
+// diagnostics output.
 type StatsSummary struct {
 	Overview     OverviewStats     `json:"overview"`
 	Languages    []LanguageStat    `json:"languages"`

@@ -150,6 +150,9 @@ type commitActivityNode struct {
 	Deletions int `json:"deletions"`
 }
 
+// FetchViewerRepositories returns the authenticated viewer plus two paginated
+// repository slices: those owned by the viewer, and those they have
+// contributed to but do not own.
 func (client *Client) FetchViewerRepositories(ctx context.Context) (internalmodel.ViewerSummary, []internalmodel.Repository, []internalmodel.Repository, error) {
 	queryTemplate, err := loadGraphQLQuery("queries/viewer_repositories.graphql")
 	if err != nil {
@@ -205,6 +208,9 @@ func (client *Client) FetchViewerRepositories(ctx context.Context) (internalmode
 	return viewer, ownedRepositories, externalRepositories, nil
 }
 
+// FetchTotalContributions returns the viewer's lifetime contribution count by
+// summing per-year contribution calendars across every year GitHub reports
+// activity for.
 func (client *Client) FetchTotalContributions(ctx context.Context) (int, error) {
 	yearsQuery, err := loadGraphQLQuery("queries/contribution_years.graphql")
 	if err != nil {
@@ -262,6 +268,9 @@ func (client *Client) FetchTotalContributions(ctx context.Context) (int, error) 
 	return totalContributions, nil
 }
 
+// FetchContributorActivity walks each repository's default-branch commit
+// history filtered by the configured actor, returning per-repo commit counts
+// plus the global additions/deletions totals.
 func (client *Client) FetchContributorActivity(ctx context.Context, repositories []internalmodel.Repository) ([]internalmodel.RepoActivity, int, int, error) {
 	actorID, err := client.fetchActorID(ctx)
 	if err != nil {

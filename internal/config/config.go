@@ -1,3 +1,5 @@
+// Package config loads stats-gh runtime configuration from a TOML file and
+// resolves GitHub credentials from environment-variable fallbacks.
 package config
 
 import (
@@ -12,14 +14,20 @@ import (
 	toml "github.com/pelletier/go-toml/v2"
 )
 
-const defaultConfigPath = "config.toml"
-const defaultRecencyHalfLife = 3 * 365 * 24 * time.Hour
-const defaultRecencyFloor = 0.05
-const hoursPerYear = 365 * 24
+const (
+	defaultConfigPath      = "config.toml"
+	defaultRecencyHalfLife = 3 * 365 * 24 * time.Hour
+	defaultRecencyFloor    = 0.05
+	hoursPerYear           = 365 * 24
+)
 
-var githubTokenEnvironmentKeys = []string{"GH_TOKEN", "GITHUB_TOKEN"}
-var githubActorEnvironmentKeys = []string{"GH_ACTOR", "GITHUB_ACTOR"}
+var (
+	githubTokenEnvironmentKeys = []string{"GH_TOKEN", "GITHUB_TOKEN"}
+	githubActorEnvironmentKeys = []string{"GH_ACTOR", "GITHUB_ACTOR"}
+)
 
+// Config holds the fully-resolved runtime configuration that the rest of the
+// application reads.
 type Config struct {
 	Path            string
 	GitHubToken     string
@@ -61,14 +69,13 @@ type loggingConfig struct {
 	Level string `toml:"level"`
 }
 
+// DefaultPath returns the default config file path used when no -config flag is supplied.
 func DefaultPath() string {
 	return defaultConfigPath
 }
 
-func Load() (Config, error) {
-	return LoadFromPath(defaultConfigPath)
-}
-
+// LoadFromPath reads, parses, and validates the TOML configuration at the given path,
+// merging in environment-variable overrides for the GitHub token and actor.
 func LoadFromPath(path string) (Config, error) {
 	cleanPath := strings.TrimSpace(path)
 	if cleanPath == "" {
@@ -171,8 +178,7 @@ func stringSet(values []string, lower bool) map[string]struct{} {
 
 func parseHalfLife(value string) (time.Duration, error) {
 	trimmedValue := strings.TrimSpace(strings.ToLower(value))
-	if strings.HasSuffix(trimmedValue, "y") {
-		yearCountValue := strings.TrimSuffix(trimmedValue, "y")
+	if yearCountValue, ok := strings.CutSuffix(trimmedValue, "y"); ok {
 		yearCount, err := strconv.ParseFloat(yearCountValue, 64)
 		if err != nil {
 			slog.Error("parse recency.half_life years", "value", value, "error", err)

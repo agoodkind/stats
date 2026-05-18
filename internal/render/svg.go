@@ -31,10 +31,22 @@ const (
 	topRepoMinBarPercent     = 25.0
 	// languagesChromeHeight covers the h2, the progress bar, and the
 	// foreignObject vertical chrome above and below the language pills.
-	languagesChromeHeight   = 86
-	languagesItemRowHeight  = 22
-	languagesItemsPerRowAvg = 2
-	languagesMinSVGHeight   = 140
+	languagesChromeHeight = 90
+	// languagesItemRowHeight is the per-row pitch for li elements with the
+	// shared svg line-height of 21px plus a couple of pixels of slack.
+	languagesItemRowHeight = 22
+	// languagesContainerWidth is the inner width of the foreignObject the
+	// language list flows inside.
+	languagesContainerWidth = 318
+	// languagesItemBasePx covers the octicon, its margin, the lang span's
+	// trailing margin, and the li margin-right so the rest of the width is
+	// just the label + percent text.
+	languagesItemBasePx = 48
+	// languagesCharPx is a pessimistic 12px sans-serif char width. We
+	// overestimate so the packing simulation always produces at least as many
+	// rows as the browser will, never fewer.
+	languagesCharPx       = 7
+	languagesMinSVGHeight = 140
 )
 
 var hexColorPattern = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
@@ -149,13 +161,35 @@ func buildLanguageTemplateData(languages []internalmodel.LanguageStat) languageT
 			AnimationDelayMs:  index * animationDelayStepMs,
 		})
 	}
-	rows := (len(items) + languagesItemsPerRowAvg - 1) / languagesItemsPerRowAvg
+	rows := packLanguageRows(items)
 	svgHeight := max(languagesChromeHeight+rows*languagesItemRowHeight, languagesMinSVGHeight)
 	return languageTemplateData{
 		Items:               items,
 		SVGHeight:           svgHeight,
 		ForeignObjectHeight: svgHeight - 34,
 	}
+}
+
+// packLanguageRows simulates the browser's first-fit inline-flex wrap so the
+// SVG can be sized to the actual row count rather than a fixed estimate. Each
+// item's width is approximated from the visible character count; widths are
+// pessimistic on purpose so the simulation never undercounts rows.
+func packLanguageRows(items []languageTemplateItem) int {
+	if len(items) == 0 {
+		return 0
+	}
+	rows := 1
+	rowWidth := 0
+	for _, item := range items {
+		itemWidth := languagesItemBasePx + languagesCharPx*(len(item.Name)+len(item.PercentageDisplay)+1)
+		if rowWidth > 0 && rowWidth+itemWidth > languagesContainerWidth {
+			rows++
+			rowWidth = itemWidth
+			continue
+		}
+		rowWidth += itemWidth
+	}
+	return rows
 }
 
 func buildTopReposTemplateData(name string, repos []internalmodel.RepoActivity) topReposTemplateData {

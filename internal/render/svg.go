@@ -29,6 +29,12 @@ const (
 	fallbackColor            = "#586069"
 	topRepositoryNameDefault = "Top GitHub Repos"
 	topRepoMinBarPercent     = 25.0
+	// languagesChromeHeight covers the h2, the progress bar, and the
+	// foreignObject vertical chrome above and below the language pills.
+	languagesChromeHeight   = 78
+	languagesItemRowHeight  = 20
+	languagesItemsPerRowAvg = 2
+	languagesMinSVGHeight   = 140
 )
 
 var hexColorPattern = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
@@ -50,7 +56,9 @@ type overviewTemplateData struct {
 func (overviewTemplateData) svgTemplateMarker() {}
 
 type languageTemplateData struct {
-	Items []languageTemplateItem
+	Items               []languageTemplateItem
+	SVGHeight           int
+	ForeignObjectHeight int
 }
 
 func (languageTemplateData) svgTemplateMarker() {}
@@ -141,7 +149,13 @@ func buildLanguageTemplateData(languages []internalmodel.LanguageStat) languageT
 			AnimationDelayMs:  index * animationDelayStepMs,
 		})
 	}
-	return languageTemplateData{Items: items}
+	rows := (len(items) + languagesItemsPerRowAvg - 1) / languagesItemsPerRowAvg
+	svgHeight := max(languagesChromeHeight+rows*languagesItemRowHeight, languagesMinSVGHeight)
+	return languageTemplateData{
+		Items:               items,
+		SVGHeight:           svgHeight,
+		ForeignObjectHeight: svgHeight - 34,
+	}
 }
 
 func buildTopReposTemplateData(name string, repos []internalmodel.RepoActivity) topReposTemplateData {

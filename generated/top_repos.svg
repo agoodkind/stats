@@ -92,63 +92,63 @@ tr {
 <tbody>
 
 <tr style="animation-delay: 0ms">
-<td width="50%"><div>agoodkind/lru-cache-simulator</div></td>
+<td width="50%"><div>clyde</div></td>
 <td width="30%">
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
 <rect fill="#3572A5" width="100.00%" height="100%"></rect>
 </svg>
 </td>
-<td width="20%"><div>792,823</div></td>
+<td width="20%"><div>863 · ★1</div></td>
 </tr>
 
 <tr style="animation-delay: 150ms">
-<td width="50%"><div>agoodkind/clyde</div></td>
+<td width="50%"><div>.dotfiles</div></td>
 <td width="30%">
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
-<rect fill="#555555" width="38.96%" height="100%"></rect>
+<rect fill="#555555" width="99.39%" height="100%"></rect>
 </svg>
 </td>
-<td width="20%"><div>308,859</div></td>
+<td width="20%"><div>872 · ★1</div></td>
 </tr>
 
 <tr style="animation-delay: 300ms">
-<td width="50%"><div>agoodkind/hdfs-grpc-protobuf</div></td>
+<td width="50%"><div>macos-smc-fan</div></td>
 <td width="30%">
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
-<rect fill="#3178c6" width="37.35%" height="100%"></rect>
+<rect fill="#3178c6" width="95.92%" height="100%"></rect>
 </svg>
 </td>
-<td width="20%"><div>296,086</div></td>
+<td width="20%"><div>93 · ★16</div></td>
 </tr>
 
 <tr style="animation-delay: 450ms">
-<td width="50%"><div>agoodkind/student-records-json-protobuf</div></td>
+<td width="50%"><div>goodkind.io</div></td>
 <td width="30%">
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
-<rect fill="#DA3434" width="17.16%" height="100%"></rect>
+<rect fill="#DA3434" width="32.77%" height="100%"></rect>
 </svg>
 </td>
-<td width="20%"><div>136,031</div></td>
+<td width="20%"><div>137 · ★1</div></td>
 </tr>
 
 <tr style="animation-delay: 600ms">
-<td width="50%"><div>agoodkind/goodkind.io</div></td>
+<td width="50%"><div>cloudflared-opnsense</div></td>
 <td width="30%">
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
-<rect fill="#89e051" width="11.40%" height="100%"></rect>
+<rect fill="#89e051" width="26.03%" height="100%"></rect>
 </svg>
 </td>
-<td width="20%"><div>90,371</div></td>
+<td width="20%"><div>111 · ★1</div></td>
 </tr>
 
 <tr style="animation-delay: 750ms">
-<td width="50%"><div>agoodkind/.dotfiles</div></td>
+<td width="50%"><div>agent-gate</div></td>
 <td width="30%">
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
-<rect fill="#00ADD8" width="10.20%" height="100%"></rect>
+<rect fill="#00ADD8" width="25.00%" height="100%"></rect>
 </svg>
 </td>
-<td width="20%"><div>80,900</div></td>
+<td width="20%"><div>109 · ★1</div></td>
 </tr>
 
 </tbody>

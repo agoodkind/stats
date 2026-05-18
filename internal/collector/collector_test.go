@@ -64,8 +64,13 @@ func (service fakeGitHubService) FetchContributorActivity(_ context.Context, _ [
 	return append([]internalmodel.RepoActivity(nil), service.activities...), service.additions, service.deletions, nil
 }
 
-func (service fakeGitHubService) FetchViews(context.Context, []internalmodel.Repository) (int, error) {
-	return service.views, nil
+func (service fakeGitHubService) FetchViews(context.Context, []internalmodel.Repository) (map[string]map[string]int, error) {
+	if service.views <= 0 {
+		return map[string]map[string]int{}, nil
+	}
+	return map[string]map[string]int{
+		"me/recent-go": {"2026-01-01": service.views},
+	}, nil
 }
 
 func (service fakeGitHubService) EstimateExternalContributions(context.Context, []internalmodel.Repository) ([]internalmodel.ExternalContributionEstimate, error) {
@@ -90,6 +95,7 @@ func TestCollectFixtureSDKRegression(t *testing.T) {
 	collector.now = func() time.Time {
 		return fixture.Now
 	}
+	collector.viewsHistoryPath = filepath.Join(t.TempDir(), "views_history.json")
 
 	summary, err := collector.Collect(context.Background(), cfg)
 	if err != nil {
@@ -132,6 +138,7 @@ func TestFormatDiagnosticsDeterministic(t *testing.T) {
 	collector.now = func() time.Time {
 		return fixture.Now
 	}
+	collector.viewsHistoryPath = filepath.Join(t.TempDir(), "views_history.json")
 
 	summary, err := collector.Collect(context.Background(), cfg)
 	if err != nil {

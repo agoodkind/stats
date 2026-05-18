@@ -15,6 +15,7 @@ import (
 
 	internalconfig "github.com/agoodkind/stats/internal/config"
 	internalmodel "github.com/agoodkind/stats/internal/model"
+	internalviewshistory "github.com/agoodkind/stats/internal/viewshistory"
 )
 
 const diagnosticsScope = "all-time owned repositories, recency weighted"
@@ -23,15 +24,22 @@ type githubService interface {
 	FetchViewerRepositories(ctx context.Context) (internalmodel.ViewerSummary, []internalmodel.Repository, []internalmodel.Repository, error)
 	FetchTotalContributions(ctx context.Context) (int, error)
 	FetchContributorActivity(ctx context.Context, repositories []internalmodel.Repository, now time.Time, halfLife time.Duration, floor float64) ([]internalmodel.RepoActivity, int, int, error)
-	FetchViews(ctx context.Context, repositories []internalmodel.Repository) (int, error)
+	FetchViews(ctx context.Context, repositories []internalmodel.Repository) (map[string]map[string]int, error)
 	EstimateExternalContributions(ctx context.Context, repositories []internalmodel.Repository) ([]internalmodel.ExternalContributionEstimate, error)
 }
+
+// ViewsHistoryPath is the location under generated/ where lifetime view
+// counts accumulate across CI runs. The bot commits this alongside the
+// SVGs so each subsequent run can merge the freshest 14-day window into
+// the running total.
+const ViewsHistoryPath = "generated/views_history.json"
 
 // Collector orchestrates the GitHub API fetches and aggregation rules that
 // produce a StatsSummary.
 type Collector struct {
-	client githubService
-	now    func() time.Time
+	client           githubService
+	now              func() time.Time
+	viewsHistoryPath string
 }
 
 type languageAccumulator struct {
@@ -42,9 +50,10 @@ type languageAccumulator struct {
 }
 
 // New returns a Collector wired to the given GitHub service, using [time.Now]
-// for recency calculations.
+// for recency calculations and the default ViewsHistoryPath for accumulated
+// repo views.
 func New(client githubService) *Collector {
-	return &Collector{client: client, now: time.Now}
+	return &Collector{client: client, now: time.Now, viewsHistoryPath: ViewsHistoryPath}
 }
 
 // Collect runs every GitHub fetch in sequence and assembles a StatsSummary
@@ -68,10 +77,24 @@ func (collector *Collector) Collect(ctx context.Context, cfg internalconfig.Conf
 	}
 	repoCommitWeights := buildCommitWeightMap(activities, cfg.RecencyFloor)
 	weightedOwned, rawOwned, decisions, includedOwnedCount := collector.collectLanguages(cfg, ownedRepositories, repoCommitWeights)
-	views, err := collector.client.FetchViews(ctx, ownedRepositories)
+	freshViews, err := collector.client.FetchViews(ctx, ownedRepositories)
 	if err != nil {
 		slog.ErrorContext(ctx, "fetch views", "error", err)
 		return internalmodel.StatsSummary{}, fmt.Errorf("fetch views: %w", err)
+	}
+	views := 0
+	if collector.viewsHistoryPath != "" {
+		viewsHistory, err := internalviewshistory.Load(collector.viewsHistoryPath)
+		if err != nil {
+			slog.ErrorContext(ctx, "load views history", "path", collector.viewsHistoryPath, "error", err)
+			return internalmodel.StatsSummary{}, fmt.Errorf("load views history: %w", err)
+		}
+		viewsHistory = internalviewshistory.Merge(viewsHistory, freshViews)
+		if err := internalviewshistory.Save(collector.viewsHistoryPath, viewsHistory); err != nil {
+			slog.ErrorContext(ctx, "save views history", "path", collector.viewsHistoryPath, "error", err)
+			return internalmodel.StatsSummary{}, fmt.Errorf("save views history: %w", err)
+		}
+		views = internalviewshistory.Total(viewsHistory)
 	}
 	externalEstimates, err := collector.client.EstimateExternalContributions(ctx, externalRepositories)
 	if err != nil {

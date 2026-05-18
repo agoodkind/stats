@@ -8,15 +8,17 @@ import (
 	github "github.com/google/go-github/v81/github"
 )
 
-// FetchViews sums the trailing-14-day traffic view counts across every owned
-// repository. Repos the token lacks push access to return 403 and are skipped
-// with a warning log. Emits a summary log at the end so a glance at the
-// workflow output reveals whether the token has the right scope.
-func (client *Client) FetchViews(ctx context.Context, repositories []internalmodel.Repository) (int, error) {
-	totalViews := 0
+// FetchViews returns a per-repo map of ISO date strings to view counts for
+// the trailing-14-day window across every owned repository. Callers merge
+// the result into a persisted history file so view totals can accumulate
+// past the 14-day API window. Repos the token lacks push access to return
+// 403 and are skipped with a warning log.
+func (client *Client) FetchViews(ctx context.Context, repositories []internalmodel.Repository) (map[string]map[string]int, error) {
+	daily := make(map[string]map[string]int, len(repositories))
 	succeeded := 0
 	failed := 0
 	pending := 0
+	freshCount := 0
 	options := &github.TrafficBreakdownOptions{Per: "day"}
 
 	for _, repository := range repositories {
@@ -41,11 +43,22 @@ func (client *Client) FetchViews(ctx context.Context, repositories []internalmod
 			continue
 		}
 		succeeded += 1
-		totalViews += views.GetCount()
+		days := make(map[string]int, len(views.Views))
+		for _, day := range views.Views {
+			if day == nil || day.Timestamp == nil {
+				continue
+			}
+			date := day.Timestamp.Format("2006-01-02")
+			days[date] = day.GetCount()
+			freshCount += day.GetCount()
+		}
+		if len(days) > 0 {
+			daily[repository.NameWithOwner] = days
+		}
 	}
 
-	slog.InfoContext(ctx, "views summary", "total", totalViews, "succeeded", succeeded, "failed", failed, "pending", pending, "repos", len(repositories))
-	return totalViews, nil
+	slog.InfoContext(ctx, "views summary", "fresh_14d_total", freshCount, "succeeded", succeeded, "failed", failed, "pending", pending, "repos", len(repositories))
+	return daily, nil
 }
 
 // EstimateExternalContributions approximates the viewer's contribution share

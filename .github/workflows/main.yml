@@ -40,8 +40,15 @@ jobs:
 
       - name: Commit generated SVGs
         run: |
+          set -x
           git config --global user.name "agoodkind-gh-bot"
           git config --global user.email "gh-bots@goodkind.io"
+          git status --short generated
           git add generated
-          git commit -m "Update generated SVGs" || true
-          git push
+          if git diff --cached --quiet; then
+            echo "no SVG changes to commit"
+            exit 0
+          fi
+          git diff --cached --stat
+          git commit -m "Update generated SVGs"
+          git push origin HEAD:master

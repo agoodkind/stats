@@ -82,6 +82,7 @@ type repositoryNode struct {
 	IsFork        bool               `json:"isFork"`
 	IsArchived    bool               `json:"isArchived"`
 	IsDisabled    bool               `json:"isDisabled"`
+	IsPrivate     bool               `json:"isPrivate"`
 	PushedAt      string             `json:"pushedAt"`
 	UpdatedAt     string             `json:"updatedAt"`
 	Stargazers    totalCountNode     `json:"stargazers"`
@@ -417,6 +418,7 @@ func mapRepositories(nodes []repositoryNode, source internalmodel.RepositorySour
 			IsFork:        node.IsFork,
 			IsArchived:    node.IsArchived,
 			IsDisabled:    node.IsDisabled,
+			IsPrivate:     node.IsPrivate,
 			Stars:         node.Stargazers.TotalCount,
 			Forks:         node.ForkCount,
 			PushedAt:      parseGitHubTime(node.PushedAt),

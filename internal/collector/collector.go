@@ -64,20 +64,24 @@ func (collector *Collector) Collect(ctx context.Context, cfg internalconfig.Conf
 		slog.ErrorContext(ctx, "fetch viewer repositories", "error", err)
 		return internalmodel.StatsSummary{}, fmt.Errorf("fetch viewer repositories: %w", err)
 	}
+	// publicOwned strips private repos out of every downstream call so their
+	// names, traffic counts, and aggregate totals never reach the rendered
+	// SVGs or the committed views_history.json.
+	publicOwned := filterPublic(ownedRepositories)
 
 	contributionCount, err := collector.client.FetchTotalContributions(ctx)
 	if err != nil {
 		slog.ErrorContext(ctx, "fetch total contributions", "error", err)
 		return internalmodel.StatsSummary{}, fmt.Errorf("fetch total contributions: %w", err)
 	}
-	activities, additions, deletions, err := collector.client.FetchContributorActivity(ctx, ownedRepositories, collector.now(), cfg.RecencyHalfLife, cfg.RecencyFloor)
+	activities, additions, deletions, err := collector.client.FetchContributorActivity(ctx, publicOwned, collector.now(), cfg.RecencyHalfLife, cfg.RecencyFloor)
 	if err != nil {
 		slog.ErrorContext(ctx, "fetch contributor activity", "error", err)
 		return internalmodel.StatsSummary{}, fmt.Errorf("fetch contributor activity: %w", err)
 	}
 	repoCommitWeights := buildCommitWeightMap(activities, cfg.RecencyFloor)
 	weightedOwned, rawOwned, decisions, includedOwnedCount := collector.collectLanguages(cfg, ownedRepositories, repoCommitWeights)
-	freshViews, err := collector.client.FetchViews(ctx, ownedRepositories)
+	freshViews, err := collector.client.FetchViews(ctx, publicOwned)
 	if err != nil {
 		slog.ErrorContext(ctx, "fetch views", "error", err)
 		return internalmodel.StatsSummary{}, fmt.Errorf("fetch views: %w", err)
@@ -108,7 +112,7 @@ func (collector *Collector) Collect(ctx context.Context, cfg internalconfig.Conf
 		effectiveLanguage = mergeLanguageStats(weightedOwned, externalEstimatedLanguage)
 	}
 
-	topRepos := collector.rankTopRepos(cfg, ownedRepositories, activities)
+	topRepos := collector.rankTopRepos(cfg, publicOwned, activities)
 
 	sort.Slice(externalEstimates, func(left int, right int) bool {
 		if externalEstimates[left].WeightedEstimatedBytes == externalEstimates[right].WeightedEstimatedBytes {
@@ -125,12 +129,12 @@ func (collector *Collector) Collect(ctx context.Context, cfg internalconfig.Conf
 	return internalmodel.StatsSummary{
 		Overview: internalmodel.OverviewStats{
 			Name:               displayName,
-			Stars:              sumRepositoryStars(ownedRepositories),
-			Forks:              sumRepositoryForks(ownedRepositories),
+			Stars:              sumRepositoryStars(publicOwned),
+			Forks:              sumRepositoryForks(publicOwned),
 			TotalContributions: contributionCount,
 			LinesChanged:       additions + deletions,
 			Views:              views,
-			RepositoryCount:    len(ownedRepositories),
+			RepositoryCount:    len(publicOwned),
 		},
 		Languages: effectiveLanguage,
 		TopRepos:  topRepos,
@@ -150,6 +154,21 @@ func (collector *Collector) Collect(ctx context.Context, cfg internalconfig.Conf
 }
 
 const topRepoLimit = 6
+
+// filterPublic returns only repositories whose IsPrivate is false. Used to
+// strip private repos out of every downstream call so their names, traffic
+// counts, and aggregate totals never reach the rendered SVGs or the
+// committed views_history.json.
+func filterPublic(repositories []internalmodel.Repository) []internalmodel.Repository {
+	publicRepos := make([]internalmodel.Repository, 0, len(repositories))
+	for _, repository := range repositories {
+		if repository.IsPrivate {
+			continue
+		}
+		publicRepos = append(publicRepos, repository)
+	}
+	return publicRepos
+}
 
 // buildCommitWeightMap maps each repository to its average per-commit recency
 // weight (weightedCommits / commits). The result is used as the language byte
@@ -254,6 +273,9 @@ func (collector *Collector) collectLanguages(cfg internalconfig.Config, reposito
 }
 
 func repositoryExclusionReason(cfg internalconfig.Config, repository internalmodel.Repository, rawBytes int) string {
+	if repository.IsPrivate {
+		return "private"
+	}
 	if repository.IsArchived {
 		return "archived"
 	}

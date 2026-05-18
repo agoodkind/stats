@@ -49,6 +49,7 @@ type Repository struct {
 	IsFork        bool                 `json:"isFork"`
 	IsArchived    bool                 `json:"isArchived"`
 	IsDisabled    bool                 `json:"isDisabled"`
+	IsPrivate     bool                 `json:"isPrivate"`
 	Stars         int                  `json:"stars"`
 	Forks         int                  `json:"forks"`
 	PushedAt      time.Time            `json:"pushedAt"`

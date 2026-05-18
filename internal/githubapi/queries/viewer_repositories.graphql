@@ -17,6 +17,7 @@ query ViewerRepositories($login: String!, $ownedCursor: String, $externalCursor:
         isFork
         isArchived
         isDisabled
+        isPrivate
         pushedAt
         updatedAt
         forkCount
@@ -50,6 +51,7 @@ query ViewerRepositories($login: String!, $ownedCursor: String, $externalCursor:
         isFork
         isArchived
         isDisabled
+        isPrivate
         pushedAt
         updatedAt
         forkCount

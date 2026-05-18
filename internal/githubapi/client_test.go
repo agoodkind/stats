@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"math"
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 )
 
 type roundTripFunc func(request *http.Request) (*http.Response, error)
@@ -143,7 +145,7 @@ func TestFetchRepositoryCommitActivityPaginates(t *testing.T) {
 					}
 					return &http.Response{
 						StatusCode: http.StatusOK,
-						Body:       io.NopCloser(strings.NewReader(`{"data":{"repository":{"defaultBranchRef":{"target":{"history":{"nodes":[{"additions":4,"deletions":6}],"pageInfo":{"hasNextPage":true,"endCursor":"cursor-1"}}}}}}}`)),
+						Body:       io.NopCloser(strings.NewReader(`{"data":{"repository":{"defaultBranchRef":{"target":{"history":{"nodes":[{"additions":4,"deletions":6,"committedDate":"2026-01-01T00:00:00Z"}],"pageInfo":{"hasNextPage":true,"endCursor":"cursor-1"}}}}}}}`)),
 					}, nil
 				}
 
@@ -152,13 +154,15 @@ func TestFetchRepositoryCommitActivityPaginates(t *testing.T) {
 				}
 				return &http.Response{
 					StatusCode: http.StatusOK,
-					Body:       io.NopCloser(strings.NewReader(`{"data":{"repository":{"defaultBranchRef":{"target":{"history":{"nodes":[{"additions":8,"deletions":2}],"pageInfo":{"hasNextPage":false,"endCursor":""}}}}}}}`)),
+					Body:       io.NopCloser(strings.NewReader(`{"data":{"repository":{"defaultBranchRef":{"target":{"history":{"nodes":[{"additions":8,"deletions":2,"committedDate":"2025-01-01T00:00:00Z"}],"pageInfo":{"hasNextPage":false,"endCursor":""}}}}}}}`)),
 				}, nil
 			}),
 		},
 	}
 
-	commits, additions, deletions, err := client.fetchRepositoryCommitActivity(context.Background(), query, "actor-id", "agoodkind", "stats-gh")
+	now := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	halfLife := 365 * 24 * time.Hour
+	commits, weightedCommits, additions, deletions, err := client.fetchRepositoryCommitActivity(context.Background(), query, "actor-id", "agoodkind", "stats-gh", now, halfLife, 0.05)
 	if err != nil {
 		t.Fatalf("fetchRepositoryCommitActivity returned error: %v", err)
 	}
@@ -167,6 +171,10 @@ func TestFetchRepositoryCommitActivityPaginates(t *testing.T) {
 	}
 	if commits != 2 {
 		t.Fatalf("unexpected commit count %d", commits)
+	}
+	// First commit (just now) weighs 1.0, second commit (1 year old) weighs 0.5.
+	if math.Abs(weightedCommits-1.5) > 0.001 {
+		t.Fatalf("unexpected weighted commit count %.4f", weightedCommits)
 	}
 	if additions != 12 {
 		t.Fatalf("unexpected additions %d", additions)

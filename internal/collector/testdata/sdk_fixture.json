@@ -187,31 +187,38 @@
   "activities": [
     {
       "repositoryName": "me/shared-sdk",
-      "commits": 200
+      "commits": 200,
+      "weightedCommits": 70.5
     },
     {
       "repositoryName": "me/recent-go",
-      "commits": 50
+      "commits": 50,
+      "weightedCommits": 49.9
     },
     {
       "repositoryName": "me/older-rust",
-      "commits": 120
+      "commits": 120,
+      "weightedCommits": 60.0
     },
     {
       "repositoryName": "me/forked-go",
-      "commits": 90
+      "commits": 90,
+      "weightedCommits": 50.0
     },
     {
       "repositoryName": "me/archived-old",
-      "commits": 70
+      "commits": 70,
+      "weightedCommits": 14.0
     },
     {
       "repositoryName": "me/excluded-repo",
-      "commits": 60
+      "commits": 60,
+      "weightedCommits": 30.0
     },
     {
       "repositoryName": "me/no-langs",
-      "commits": 40
+      "commits": 40,
+      "weightedCommits": 20.0
     }
   ],
   "additions": 111,

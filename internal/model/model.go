@@ -70,13 +70,15 @@ type InclusionDecision struct {
 	UpdatedAt      time.Time        `json:"updatedAt"`
 }
 
-// RepoActivity is one row of the top-repos chart: a repository plus its
-// commits, stars, and composite score.
+// RepoActivity is one row of the top-repos chart: a repository plus its raw
+// commit count, the same count weighted by per-commit recency, stars, and the
+// final composite score.
 type RepoActivity struct {
-	RepositoryName string  `json:"repositoryName"`
-	Commits        int     `json:"commits"`
-	Stars          int     `json:"stars"`
-	Score          float64 `json:"score"`
+	RepositoryName  string  `json:"repositoryName"`
+	Commits         int     `json:"commits"`
+	WeightedCommits float64 `json:"weightedCommits"`
+	Stars           int     `json:"stars"`
+	Score           float64 `json:"score"`
 }
 
 // ExternalContributionEstimate represents an approximated share of an external

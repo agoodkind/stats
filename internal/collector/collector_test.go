@@ -60,7 +60,7 @@ func (service fakeGitHubService) FetchTotalContributions(context.Context) (int, 
 	return service.contributionCount, nil
 }
 
-func (service fakeGitHubService) FetchContributorActivity(context.Context, []internalmodel.Repository) ([]internalmodel.RepoActivity, int, int, error) {
+func (service fakeGitHubService) FetchContributorActivity(_ context.Context, _ []internalmodel.Repository, _ time.Time, _ time.Duration, _ float64) ([]internalmodel.RepoActivity, int, int, error) {
 	return append([]internalmodel.RepoActivity(nil), service.activities...), service.additions, service.deletions, nil
 }
 
@@ -221,13 +221,13 @@ func assertLanguageOrderingAndWeights(t *testing.T, languages []internalmodel.La
 	if languages[0].Color != "#00ADD8" {
 		t.Fatalf("expected Go fallback or explicit color to be preserved, got %q", languages[0].Color)
 	}
-	assertClose(t, languages[0].Weighted, 1139.121852, "Go weighted bytes")
-	assertClose(t, languages[1].Weighted, 400, "Rust weighted bytes")
-	assertClose(t, languages[2].Weighted, 141.019084, "TypeScript weighted bytes")
+	assertClose(t, languages[0].Weighted, 1139.0, "Go weighted bytes")
+	assertClose(t, languages[1].Weighted, 400.0, "Rust weighted bytes")
+	assertClose(t, languages[2].Weighted, 141.0, "TypeScript weighted bytes")
 
-	assertClose(t, languages[0].Percentage, 67.799184, "Go weighted percentage")
-	assertClose(t, languages[1].Percentage, 23.807527, "Rust weighted percentage")
-	assertClose(t, languages[2].Percentage, 8.393289, "TypeScript weighted percentage")
+	assertClose(t, languages[0].Percentage, 67.797619, "Go weighted percentage")
+	assertClose(t, languages[1].Percentage, 23.809524, "Rust weighted percentage")
+	assertClose(t, languages[2].Percentage, 8.392857, "TypeScript weighted percentage")
 }
 
 func assertTopReposOrdering(t *testing.T, repos []internalmodel.RepoActivity) {
@@ -289,7 +289,7 @@ func assertDiagnosticsCoverage(t *testing.T, diagnostics internalmodel.Diagnosti
 	if diagnostics.Summary.UnknownExternalCount != 0 {
 		t.Fatalf("expected 0 unknown external repositories, got %d", diagnostics.Summary.UnknownExternalCount)
 	}
-	assertClose(t, diagnostics.Summary.OwnedWeightedBytes, 1680.140936, "owned weighted bytes summary")
+	assertClose(t, diagnostics.Summary.OwnedWeightedBytes, 1680.0, "owned weighted bytes summary")
 	assertClose(t, diagnostics.Summary.ExternalWeightedBytes, 76288.482967, "external weighted bytes summary")
 
 	expectedReasons := map[string]string{

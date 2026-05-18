@@ -22,7 +22,7 @@ const diagnosticsScope = "all-time owned repositories, recency weighted"
 type githubService interface {
 	FetchViewerRepositories(ctx context.Context) (internalmodel.ViewerSummary, []internalmodel.Repository, []internalmodel.Repository, error)
 	FetchTotalContributions(ctx context.Context) (int, error)
-	FetchContributorActivity(ctx context.Context, repositories []internalmodel.Repository) ([]internalmodel.RepoActivity, int, int, error)
+	FetchContributorActivity(ctx context.Context, repositories []internalmodel.Repository, now time.Time, halfLife time.Duration, floor float64) ([]internalmodel.RepoActivity, int, int, error)
 	FetchViews(ctx context.Context, repositories []internalmodel.Repository) (int, error)
 	EstimateExternalContributions(ctx context.Context, repositories []internalmodel.Repository) ([]internalmodel.ExternalContributionEstimate, error)
 }
@@ -56,17 +56,18 @@ func (collector *Collector) Collect(ctx context.Context, cfg internalconfig.Conf
 		return internalmodel.StatsSummary{}, fmt.Errorf("fetch viewer repositories: %w", err)
 	}
 
-	weightedOwned, rawOwned, decisions, includedOwnedCount := collector.collectLanguages(cfg, ownedRepositories)
 	contributionCount, err := collector.client.FetchTotalContributions(ctx)
 	if err != nil {
 		slog.ErrorContext(ctx, "fetch total contributions", "error", err)
 		return internalmodel.StatsSummary{}, fmt.Errorf("fetch total contributions: %w", err)
 	}
-	activities, additions, deletions, err := collector.client.FetchContributorActivity(ctx, ownedRepositories)
+	activities, additions, deletions, err := collector.client.FetchContributorActivity(ctx, ownedRepositories, collector.now(), cfg.RecencyHalfLife, cfg.RecencyFloor)
 	if err != nil {
 		slog.ErrorContext(ctx, "fetch contributor activity", "error", err)
 		return internalmodel.StatsSummary{}, fmt.Errorf("fetch contributor activity: %w", err)
 	}
+	repoCommitWeights := buildCommitWeightMap(activities, cfg.RecencyFloor)
+	weightedOwned, rawOwned, decisions, includedOwnedCount := collector.collectLanguages(cfg, ownedRepositories, repoCommitWeights)
 	views, err := collector.client.FetchViews(ctx, ownedRepositories)
 	if err != nil {
 		slog.ErrorContext(ctx, "fetch views", "error", err)
@@ -127,6 +128,25 @@ func (collector *Collector) Collect(ctx context.Context, cfg internalconfig.Conf
 
 const topRepoLimit = 6
 
+// buildCommitWeightMap maps each repository to its average per-commit recency
+// weight (weightedCommits / commits). The result is used as the language byte
+// multiplier so a repo's language bytes are reduced in proportion to how old
+// its commits are.
+func buildCommitWeightMap(activities []internalmodel.RepoActivity, floor float64) map[string]float64 {
+	weights := make(map[string]float64, len(activities))
+	for _, activity := range activities {
+		if activity.Commits <= 0 {
+			continue
+		}
+		avg := activity.WeightedCommits / float64(activity.Commits)
+		if avg < floor {
+			avg = floor
+		}
+		weights[activity.RepositoryName] = avg
+	}
+	return weights
+}
+
 func (collector *Collector) rankTopRepos(cfg internalconfig.Config, ownedRepositories []internalmodel.Repository, activities []internalmodel.RepoActivity) []internalmodel.RepoActivity {
 	repositoryByName := make(map[string]internalmodel.Repository, len(ownedRepositories))
 	for _, repository := range ownedRepositories {
@@ -143,7 +163,7 @@ func (collector *Collector) rankTopRepos(cfg internalconfig.Config, ownedReposit
 			continue
 		}
 		activity.Stars = repository.Stars
-		activity.Score = (math.Log10(1+float64(activity.Commits)) + math.Log10(1+float64(activity.Stars))) * collector.recencyWeight(cfg, repository)
+		activity.Score = math.Log10(1+activity.WeightedCommits) + math.Log10(1+float64(activity.Stars))
 		ranked = append(ranked, activity)
 	}
 
@@ -159,7 +179,7 @@ func (collector *Collector) rankTopRepos(cfg internalconfig.Config, ownedReposit
 	return ranked
 }
 
-func (collector *Collector) collectLanguages(cfg internalconfig.Config, repositories []internalmodel.Repository) ([]internalmodel.LanguageStat, []internalmodel.LanguageStat, []internalmodel.InclusionDecision, int) {
+func (collector *Collector) collectLanguages(cfg internalconfig.Config, repositories []internalmodel.Repository, repoCommitWeights map[string]float64) ([]internalmodel.LanguageStat, []internalmodel.LanguageStat, []internalmodel.InclusionDecision, int) {
 	weighted := make(map[string]*languageAccumulator)
 	raw := make(map[string]*languageAccumulator)
 	decisions := make([]internalmodel.InclusionDecision, 0, len(repositories))
@@ -182,7 +202,10 @@ func (collector *Collector) collectLanguages(cfg internalconfig.Config, reposito
 			continue
 		}
 
-		recencyWeight := collector.recencyWeight(cfg, repository)
+		recencyWeight, ok := repoCommitWeights[repository.NameWithOwner]
+		if !ok {
+			recencyWeight = collector.recencyWeight(cfg, repository)
+		}
 		decision.Included = true
 		decision.Reason = "recency_weighted"
 		decision.RecencyWeight = recencyWeight

@@ -8,7 +8,7 @@
     "includeExternal": false,
     "estimatedExternalCount": 2,
     "unknownExternalCount": 0,
-    "ownedWeightedBytes": 1680.1409359390868,
+    "ownedWeightedBytes": 1680,
     "externalWeightedBytes": 76288.48296719881
   },
   "weightedOwnedLanguage": [
@@ -16,22 +16,22 @@
       "name": "Go",
       "color": "#00ADD8",
       "bytes": 1400,
-      "weighted": 1139.1218522953407,
-      "percentage": 67.79918445702577
+      "weighted": 1139,
+      "percentage": 67.79761904761905
     },
     {
       "name": "Rust",
       "color": "#dea584",
       "bytes": 800,
       "weighted": 400,
-      "percentage": 23.807526585644833
+      "percentage": 23.80952380952381
     },
     {
       "name": "TypeScript",
       "color": "#3178c6",
       "bytes": 400,
-      "weighted": 141.01908364374611,
-      "percentage": 8.393288957329395
+      "weighted": 141,
+      "percentage": 8.392857142857142
     }
   ],
   "rawOwnedLanguage": [
@@ -78,22 +78,22 @@
       "name": "Go",
       "color": "#00ADD8",
       "bytes": 1400,
-      "weighted": 1139.1218522953407,
-      "percentage": 67.79918445702577
+      "weighted": 1139,
+      "percentage": 67.79761904761905
     },
     {
       "name": "Rust",
       "color": "#dea584",
       "bytes": 800,
       "weighted": 400,
-      "percentage": 23.807526585644833
+      "percentage": 23.80952380952381
     },
     {
       "name": "TypeScript",
       "color": "#3178c6",
       "bytes": 400,
-      "weighted": 141.01908364374611,
-      "percentage": 8.393288957329395
+      "weighted": 141,
+      "percentage": 8.392857142857142
     }
   ],
   "externalRepositories": [
@@ -205,8 +205,8 @@
       "included": true,
       "reason": "recency_weighted",
       "rawBytes": 1400,
-      "weightedBytes": 1397.3438761122325,
-      "recencyWeight": 0.9981027686515946,
+      "weightedBytes": 1397.2,
+      "recencyWeight": 0.998,
       "pushedAt": "2025-12-31T00:00:00Z",
       "updatedAt": "2025-12-31T00:00:00Z"
     },
@@ -227,8 +227,8 @@
       "included": true,
       "reason": "recency_weighted",
       "rawBytes": 800,
-      "weightedBytes": 282.03816728749223,
-      "recencyWeight": 0.3525477091093653,
+      "weightedBytes": 282,
+      "recencyWeight": 0.3525,
       "pushedAt": "2024-07-01T00:00:00Z",
       "updatedAt": "2024-07-01T00:00:00Z"
     },

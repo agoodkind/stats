@@ -7,6 +7,7 @@ query RepositoryCommitActivity($owner: String!, $name: String!, $actorID: ID!, $
             nodes {
               additions
               deletions
+              committedDate
             }
             pageInfo {
               hasNextPage

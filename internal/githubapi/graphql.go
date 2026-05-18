@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"math"
 	"strings"
 	"time"
 
@@ -146,8 +147,9 @@ type commitHistoryConnection struct {
 }
 
 type commitActivityNode struct {
-	Additions int `json:"additions"`
-	Deletions int `json:"deletions"`
+	Additions     int    `json:"additions"`
+	Deletions     int    `json:"deletions"`
+	CommittedDate string `json:"committedDate"`
 }
 
 // FetchViewerRepositories returns the authenticated viewer plus two paginated
@@ -270,8 +272,10 @@ func (client *Client) FetchTotalContributions(ctx context.Context) (int, error) 
 
 // FetchContributorActivity walks each repository's default-branch commit
 // history filtered by the configured actor, returning per-repo commit counts
-// plus the global additions/deletions totals.
-func (client *Client) FetchContributorActivity(ctx context.Context, repositories []internalmodel.Repository) ([]internalmodel.RepoActivity, int, int, error) {
+// (raw and per-commit recency-weighted) plus the global additions/deletions
+// totals. Each commit's contribution to WeightedCommits is
+// max(floor, 0.5^(age/halfLife)).
+func (client *Client) FetchContributorActivity(ctx context.Context, repositories []internalmodel.Repository, now time.Time, halfLife time.Duration, floor float64) ([]internalmodel.RepoActivity, int, int, error) {
 	actorID, err := client.fetchActorID(ctx)
 	if err != nil {
 		return nil, 0, 0, err
@@ -290,7 +294,7 @@ func (client *Client) FetchContributorActivity(ctx context.Context, repositories
 			continue
 		}
 
-		commits, additions, deletions, err := client.fetchRepositoryCommitActivity(ctx, activityQuery, actorID, owner, repo)
+		commits, weightedCommits, additions, deletions, err := client.fetchRepositoryCommitActivity(ctx, activityQuery, actorID, owner, repo, now, halfLife, floor)
 		if err != nil {
 			slog.ErrorContext(ctx, "skip repository commit activity", "repository", repository.NameWithOwner, "error", err)
 			continue
@@ -300,8 +304,9 @@ func (client *Client) FetchContributorActivity(ctx context.Context, repositories
 		}
 
 		activities = append(activities, internalmodel.RepoActivity{
-			RepositoryName: repository.NameWithOwner,
-			Commits:        commits,
+			RepositoryName:  repository.NameWithOwner,
+			Commits:         commits,
+			WeightedCommits: weightedCommits,
 		})
 		totalAdditions += additions
 		totalDeletions += deletions
@@ -338,8 +343,9 @@ func (client *Client) fetchActorID(ctx context.Context) (string, error) {
 	return data.User.ID, nil
 }
 
-func (client *Client) fetchRepositoryCommitActivity(ctx context.Context, query string, actorID string, owner string, repo string) (int, int, int, error) {
+func (client *Client) fetchRepositoryCommitActivity(ctx context.Context, query string, actorID string, owner string, repo string, now time.Time, halfLife time.Duration, floor float64) (int, float64, int, int, error) {
 	commits := 0
+	weightedCommits := 0.0
 	additions := 0
 	deletions := 0
 	cursor := ""
@@ -351,26 +357,27 @@ func (client *Client) fetchRepositoryCommitActivity(ctx context.Context, query s
 			Cursor:  optionalCursor(cursor),
 		})
 		if err != nil {
-			return 0, 0, 0, err
+			return 0, 0, 0, 0, err
 		}
 		envelope, err := client.doGraphQL(ctx, query, variables)
 		if err != nil {
 			slog.ErrorContext(ctx, "fetch repository commit activity", "repository", owner+"/"+repo, "error", err)
-			return 0, 0, 0, fmt.Errorf("fetch repository commit activity for %s/%s: %w", owner, repo, err)
+			return 0, 0, 0, 0, fmt.Errorf("fetch repository commit activity for %s/%s: %w", owner, repo, err)
 		}
 		if len(envelope.Errors) > 0 {
-			return 0, 0, 0, fmt.Errorf("graphql error: %s", envelope.Errors[0].Message)
+			return 0, 0, 0, 0, fmt.Errorf("graphql error: %s", envelope.Errors[0].Message)
 		}
 		var data repositoryCommitActivityResponse
 		if err := json.Unmarshal(envelope.Data, &data); err != nil {
 			slog.ErrorContext(ctx, "decode repository commit activity", "repository", owner+"/"+repo, "error", err)
-			return 0, 0, 0, fmt.Errorf("decode repository commit activity for %s/%s: %w", owner, repo, err)
+			return 0, 0, 0, 0, fmt.Errorf("decode repository commit activity for %s/%s: %w", owner, repo, err)
 		}
 
 		history := data.Repository.DefaultBranchRef.Target.History
 		for _, commit := range history.Nodes {
 			additions += commit.Additions
 			deletions += commit.Deletions
+			weightedCommits += commitRecencyWeight(commit.CommittedDate, now, halfLife, floor)
 		}
 		commits += len(history.Nodes)
 		if !history.PageInfo.HasNextPage {
@@ -378,7 +385,27 @@ func (client *Client) fetchRepositoryCommitActivity(ctx context.Context, query s
 		}
 		cursor = history.PageInfo.EndCursor
 	}
-	return commits, additions, deletions, nil
+	return commits, weightedCommits, additions, deletions, nil
+}
+
+func commitRecencyWeight(committedDate string, now time.Time, halfLife time.Duration, floor float64) float64 {
+	parsedTime := parseGitHubTime(committedDate)
+	if parsedTime.IsZero() {
+		return floor
+	}
+	age := now.Sub(parsedTime)
+	if age <= 0 {
+		return 1
+	}
+	if halfLife <= 0 {
+		return 1
+	}
+	halfLives := float64(age) / float64(halfLife)
+	weight := math.Pow(0.5, halfLives)
+	if weight < floor {
+		return floor
+	}
+	return weight
 }
 
 func mapRepositories(nodes []repositoryNode, source internalmodel.RepositorySource) []internalmodel.Repository {

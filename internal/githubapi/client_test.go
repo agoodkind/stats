@@ -47,6 +47,96 @@ func TestRateLimitedTransportSetsGitHubHeaders(t *testing.T) {
 	}
 }
 
+// TestRateLimitedTransportClassifies403 locks in the views fix: only 403
+// responses carrying actual rate-limit headers (Retry-After, or
+// X-Ratelimit-Remaining:0) are rewritten as rate-limit errors. Plain 403s -
+// which is what GitHub returns when a token lacks per-repo push access to
+// /traffic/views - must pass through to the caller so FetchViews sees them
+// as ordinary errors and logs a useful warning.
+func TestRateLimitedTransportClassifies403(t *testing.T) {
+	cases := []struct {
+		name             string
+		statusCode       int
+		respHeaders      http.Header
+		wantPassThrough  bool
+		wantErrSubstring string
+	}{
+		{
+			name:       "403 insufficient scope passes through",
+			statusCode: http.StatusForbidden,
+			respHeaders: http.Header{
+				"X-Ratelimit-Remaining": []string{"4998"},
+				"X-Ratelimit-Limit":     []string{"5000"},
+			},
+			wantPassThrough: true,
+		},
+		{
+			name:       "403 with X-Ratelimit-Remaining 0 is rate-limited",
+			statusCode: http.StatusForbidden,
+			respHeaders: http.Header{
+				"X-Ratelimit-Remaining": []string{"0"},
+				"X-Ratelimit-Reset":     []string{"1700000000"},
+			},
+			wantErrSubstring: "rate limit response 403",
+		},
+		{
+			name:       "403 with Retry-After is rate-limited (secondary limit)",
+			statusCode: http.StatusForbidden,
+			respHeaders: http.Header{
+				"Retry-After": []string{"60"},
+			},
+			wantErrSubstring: "rate limit response 403",
+		},
+		{
+			name:             "429 is rate-limited",
+			statusCode:       http.StatusTooManyRequests,
+			respHeaders:      http.Header{"Retry-After": []string{"30"}},
+			wantErrSubstring: "rate limit response 429",
+		},
+		{
+			name:            "200 passes through",
+			statusCode:      http.StatusOK,
+			respHeaders:     http.Header{},
+			wantPassThrough: true,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			transport := &rateLimitedTransport{
+				base: roundTripFunc(func(*http.Request) (*http.Response, error) {
+					return &http.Response{
+						StatusCode: tc.statusCode,
+						Header:     tc.respHeaders,
+						Body:       io.NopCloser(strings.NewReader("")),
+					}, nil
+				}),
+			}
+			request, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "https://api.github.com/test", nil)
+			if err != nil {
+				t.Fatalf("new request: %v", err)
+			}
+			response, err := transport.RoundTrip(request)
+			if tc.wantPassThrough {
+				if err != nil {
+					t.Fatalf("expected passthrough, got error: %v", err)
+				}
+				if response == nil || response.StatusCode != tc.statusCode {
+					t.Fatalf("expected status %d, got %#v", tc.statusCode, response)
+				}
+				_ = response.Body.Close()
+				return
+			}
+			if err == nil {
+				t.Fatalf("expected rate-limit error, got nil")
+			}
+			if !strings.Contains(err.Error(), tc.wantErrSubstring) {
+				t.Fatalf("expected error containing %q, got %q", tc.wantErrSubstring, err.Error())
+			}
+		})
+	}
+}
+
 func TestDoGraphQLSendsVariables(t *testing.T) {
 	client := &Client{
 		httpClient: &http.Client{

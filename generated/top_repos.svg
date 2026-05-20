@@ -1,4 +1,4 @@
-<svg id="gh-dark-mode-only" width="360" height="210" xmlns="http://www.w3.org/2000/svg">
+<svg id="gh-dark-mode-only" width="360" height="240" xmlns="http://www.w3.org/2000/svg">
 <style>
 svg {
   font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji;
@@ -26,48 +26,82 @@ foreignObject {
   height: calc(100% - 10px - 32px);
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: fixed;
-}
-
-th {
-  padding: 0.5em;
-  padding-top: 0;
-  text-align: left;
+.title {
   font-size: 14px;
   font-weight: 600;
   color: rgb(3, 102, 214);
+  padding: 0 0 0.5em 0.25em;
 }
 
-#gh-dark-mode-only:target th {
+#gh-dark-mode-only:target .title {
   color: #58a6ff;
 }
 
-td {
-  margin-bottom: 16px;
-  margin-top: 8px;
-  padding: 0.25em;
-  font-size: 12px;
-  line-height: 18px;
-  color: rgb(88, 96, 105);
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 
-td > div {
+.card {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgb(225, 228, 232);
+  border-radius: 6px;
+  padding: 6px 8px;
+  gap: 2px;
+  min-height: 52px;
+  transform: translateX(-200%);
+  animation: slideIn 1.6s ease-in-out forwards;
+}
+
+#gh-dark-mode-only:target .card {
+  border-color: #30363d;
+}
+
+.card .name {
+  font-weight: 600;
+  font-size: 12px;
+  color: rgb(36, 41, 46);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  width: 100%;
 }
 
-#gh-dark-mode-only:target td {
+#gh-dark-mode-only:target .card .name {
   color: #c9d1d9;
 }
 
-tr {
-  transform: translateX(-200%);
-  animation: slideIn 2s ease-in-out forwards;
+.card .desc {
+  color: rgb(106, 115, 125);
+  font-size: 10px;
+  line-height: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#gh-dark-mode-only:target .card .desc {
+  color: #8b949e;
+}
+
+.card .stats {
+  color: rgb(106, 115, 125);
+  font-size: 11px;
+  margin-top: auto;
+}
+
+#gh-dark-mode-only:target .card .stats {
+  color: #8b949e;
+}
+
+.pill {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  vertical-align: middle;
+  margin-right: 5px;
 }
 
 @keyframes slideIn {
@@ -79,80 +113,50 @@ tr {
 <g>
 <rect x="5" y="5" id="background" />
 <g>
-<foreignObject x="21" y="21" width="318" height="168">
+<foreignObject x="21" y="21" width="318" height="198">
 <div xmlns="http://www.w3.org/1999/xhtml">
 
-<table>
-<thead><tr style="transform: translateX(0);">
-<th colspan="3">Alex Goodkind&#39;s Top GitHub Repos</th>
-</tr></thead>
-</table>
+<div class="title">Alex Goodkind&#39;s Top GitHub Repos</div>
 
-<table>
-<tbody>
+<div class="grid">
 
-<tr style="animation-delay: 0ms">
-<td width="42%"><div>clyde</div></td>
-<td width="30%">
-<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
-<rect fill="#3572A5" width="100.00%" height="100%"></rect>
-</svg>
-</td>
-<td width="28%"><div>872 · ★1</div></td>
-</tr>
+<div class="card" style="animation-delay: 0ms">
+<div class="name"><span class="pill" style="background-color: #00ADD8;"></span>clyde</div>
+<div class="desc">A power-user companion for Codex and …</div>
+<div class="stats">&#9733; 1 &#183; today</div>
+</div>
 
-<tr style="animation-delay: 150ms">
-<td width="42%"><div>macos-smc-fan</div></td>
-<td width="30%">
-<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
-<rect fill="#555555" width="97.53%" height="100%"></rect>
-</svg>
-</td>
-<td width="28%"><div>93 · ★17</div></td>
-</tr>
+<div class="card" style="animation-delay: 150ms">
+<div class="name"><span class="pill" style="background-color: #F05138;"></span>macos-smc-fan</div>
+<div class="desc">Research into SMC fan control on Appl…</div>
+<div class="stats">&#9733; 17 &#183; 10d ago</div>
+</div>
 
-<tr style="animation-delay: 300ms">
-<td width="42%"><div>.dotfiles</div></td>
-<td width="30%">
-<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
-<rect fill="#3178c6" width="96.59%" height="100%"></rect>
-</svg>
-</td>
-<td width="28%"><div>873 · ★1</div></td>
-</tr>
+<div class="card" style="animation-delay: 300ms">
+<div class="name"><span class="pill" style="background-color: #00ADD8;"></span>.dotfiles</div>
+<div class="desc">My dot files wrapped up into a portab…</div>
+<div class="stats">&#9733; 1 &#183; 1d ago</div>
+</div>
 
-<tr style="animation-delay: 450ms">
-<td width="42%"><div>goodkind.io</div></td>
-<td width="30%">
-<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
-<rect fill="#DA3434" width="27.21%" height="100%"></rect>
-</svg>
-</td>
-<td width="28%"><div>137 · ★1</div></td>
-</tr>
+<div class="card" style="animation-delay: 450ms">
+<div class="name"><span class="pill" style="background-color: #00ADD8;"></span>goodkind.io</div>
+<div class="desc">My overengineered personal website bu…</div>
+<div class="stats">&#9733; 1 &#183; 2d ago</div>
+</div>
 
-<tr style="animation-delay: 600ms">
-<td width="42%"><div>agent-gate</div></td>
-<td width="30%">
-<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
-<rect fill="#89e051" width="26.14%" height="100%"></rect>
-</svg>
-</td>
-<td width="28%"><div>109 · ★1</div></td>
-</tr>
+<div class="card" style="animation-delay: 600ms">
+<div class="name"><span class="pill" style="background-color: #00ADD8;"></span>agent-gate</div>
+<div class="desc">Unified hook handler for Claude Code …</div>
+<div class="stats">&#9733; 1 &#183; 5d ago</div>
+</div>
 
-<tr style="animation-delay: 750ms">
-<td width="42%"><div>cloudflared-opnsense</div></td>
-<td width="30%">
-<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
-<rect fill="#00ADD8" width="25.00%" height="100%"></rect>
-</svg>
-</td>
-<td width="28%"><div>111 · ★1</div></td>
-</tr>
+<div class="card" style="animation-delay: 750ms">
+<div class="name"><span class="pill" style="background-color: #00ADD8;"></span>cloudflared-opnsense</div>
+<div class="desc">OPNsense plugin for Cloudflare Tunnel…</div>
+<div class="stats">&#9733; 1 &#183; today</div>
+</div>
 
-</tbody>
-</table>
+</div>
 
 </div>
 </foreignObject>

@@ -98,27 +98,27 @@ tr {
 <rect fill="#3572A5" width="100.00%" height="100%"></rect>
 </svg>
 </td>
-<td width="28%"><div>870 · ★1</div></td>
+<td width="28%"><div>872 · ★1</div></td>
 </tr>
 
 <tr style="animation-delay: 150ms">
-<td width="42%"><div>.dotfiles</div></td>
-<td width="30%">
-<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
-<rect fill="#555555" width="96.67%" height="100%"></rect>
-</svg>
-</td>
-<td width="28%"><div>873 · ★1</div></td>
-</tr>
-
-<tr style="animation-delay: 300ms">
 <td width="42%"><div>macos-smc-fan</div></td>
 <td width="30%">
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
-<rect fill="#3178c6" width="95.57%" height="100%"></rect>
+<rect fill="#555555" width="97.53%" height="100%"></rect>
 </svg>
 </td>
-<td width="28%"><div>93 · ★16</div></td>
+<td width="28%"><div>93 · ★17</div></td>
+</tr>
+
+<tr style="animation-delay: 300ms">
+<td width="42%"><div>.dotfiles</div></td>
+<td width="30%">
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="10">
+<rect fill="#3178c6" width="96.59%" height="100%"></rect>
+</svg>
+</td>
+<td width="28%"><div>873 · ★1</div></td>
 </tr>
 
 <tr style="animation-delay: 450ms">

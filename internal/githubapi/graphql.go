@@ -79,6 +79,7 @@ type pageInfo struct {
 
 type repositoryNode struct {
 	NameWithOwner string             `json:"nameWithOwner"`
+	Description   string             `json:"description"`
 	IsFork        bool               `json:"isFork"`
 	IsArchived    bool               `json:"isArchived"`
 	IsDisabled    bool               `json:"isDisabled"`
@@ -414,6 +415,7 @@ func mapRepositories(nodes []repositoryNode, source internalmodel.RepositorySour
 	for _, node := range nodes {
 		repositories = append(repositories, internalmodel.Repository{
 			NameWithOwner: node.NameWithOwner,
+			Description:   node.Description,
 			Source:        source,
 			IsFork:        node.IsFork,
 			IsArchived:    node.IsArchived,

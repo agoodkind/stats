@@ -206,6 +206,9 @@ func (collector *Collector) rankTopRepos(cfg internalconfig.Config, ownedReposit
 		}
 		activity.Stars = repository.Stars
 		activity.Score = math.Log10(1+activity.WeightedCommits) + math.Log10(1+float64(activity.Stars))
+		activity.Description = repository.Description
+		activity.LangColor = primaryLanguageColor(repository)
+		activity.UpdatedAgo = humanizeAge(collector.now().Sub(repository.PushedAt))
 		ranked = append(ranked, activity)
 	}
 
@@ -219,6 +222,37 @@ func (collector *Collector) rankTopRepos(cfg internalconfig.Config, ownedReposit
 		ranked = ranked[:topRepoLimit]
 	}
 	return ranked
+}
+
+func primaryLanguageColor(repository internalmodel.Repository) string {
+	if len(repository.Languages) == 0 {
+		return ""
+	}
+	return strings.TrimSpace(repository.Languages[0].Color)
+}
+
+// humanizeAge renders a Duration as a short relative-time string the SVG can
+// show without needing client-side JS: "today" / "Xd ago" / "Xw ago" /
+// "Xmo ago" / "Xy ago".
+func humanizeAge(age time.Duration) string {
+	if age < 0 {
+		return "today"
+	}
+	days := int(age.Hours() / 24)
+	switch {
+	case days <= 0:
+		return "today"
+	case days == 1:
+		return "1d ago"
+	case days < 14:
+		return fmt.Sprintf("%dd ago", days)
+	case days < 60:
+		return fmt.Sprintf("%dw ago", days/7)
+	case days < 730:
+		return fmt.Sprintf("%dmo ago", days/30)
+	default:
+		return fmt.Sprintf("%dy ago", days/365)
+	}
 }
 
 func (collector *Collector) collectLanguages(cfg internalconfig.Config, repositories []internalmodel.Repository, repoCommitWeights map[string]float64) ([]internalmodel.LanguageStat, []internalmodel.LanguageStat, []internalmodel.InclusionDecision, int) {

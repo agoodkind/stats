@@ -46,6 +46,9 @@ func TestWriteSVGsEscapesDangerousContent(t *testing.T) {
 		TopRepos: []internalmodel.RepoActivity{
 			{
 				RepositoryName: `owner/repo<script>alert("repo")</script>`,
+				Description:    `desc <script>alert("d")</script>`,
+				LangColor:      "#00ADD8",
+				UpdatedAgo:     "today",
 				Commits:        42000,
 				Stars:          7,
 				Score:          1.0,
@@ -74,8 +77,14 @@ func TestWriteSVGsEscapesDangerousContent(t *testing.T) {
 	if strings.Contains(topReposSVG, `A <script>alert("x")</script>`) {
 		t.Fatalf("expected top_repos.svg to escape owner names")
 	}
-	if !strings.Contains(topReposSVG, `42,000 · ★7`) {
-		t.Fatalf("expected formatted commits/stars in top_repos.svg, got %s", topReposSVG)
+	if !strings.Contains(topReposSVG, `&#9733; 7`) {
+		t.Fatalf("expected star glyph + count in top_repos.svg, got %s", topReposSVG)
+	}
+	if strings.Contains(topReposSVG, `<script>alert("d")</script>`) {
+		t.Fatalf("expected top_repos.svg to escape descriptions")
+	}
+	if !strings.Contains(topReposSVG, `today`) {
+		t.Fatalf("expected updated-ago string in top_repos.svg, got %s", topReposSVG)
 	}
 
 	overviewSVGBytes, err := os.ReadFile(filepath.Join(generatedDirectory, "overview.svg"))

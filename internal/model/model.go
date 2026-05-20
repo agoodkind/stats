@@ -45,6 +45,7 @@ type RepositoryLanguage struct {
 // only the fields stats-gh uses.
 type Repository struct {
 	NameWithOwner string               `json:"nameWithOwner"`
+	Description   string               `json:"description"`
 	Source        RepositorySource     `json:"source"`
 	IsFork        bool                 `json:"isFork"`
 	IsArchived    bool                 `json:"isArchived"`
@@ -73,9 +74,14 @@ type InclusionDecision struct {
 
 // RepoActivity is one row of the top-repos chart: a repository plus its raw
 // commit count, the same count weighted by per-commit recency, stars, and the
-// final composite score.
+// final composite score. Description / LangColor / UpdatedAgo are set by the
+// collector for repos that survive ranking, so the renderer can produce the
+// card layout without re-joining against the Repository slice.
 type RepoActivity struct {
 	RepositoryName  string  `json:"repositoryName"`
+	Description     string  `json:"description"`
+	LangColor       string  `json:"langColor"`
+	UpdatedAgo      string  `json:"updatedAgo"`
 	Commits         int     `json:"commits"`
 	WeightedCommits float64 `json:"weightedCommits"`
 	Stars           int     `json:"stars"`

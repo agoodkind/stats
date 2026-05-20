@@ -28,7 +28,6 @@ const (
 	topReposTemplatePath     = "templates/top_repos.svg.tmpl"
 	fallbackColor            = "#586069"
 	topRepositoryNameDefault = "Top GitHub Repos"
-	topRepoMinBarPercent     = 25.0
 	// languagesChromeHeight covers the h2, the progress bar, and the
 	// foreignObject vertical chrome above and below the language pills.
 	languagesChromeHeight = 90
@@ -84,11 +83,12 @@ type languageTemplateItem struct {
 }
 
 type topRepoView struct {
-	RepositoryName      string
-	Display             string
-	Color               string
-	WidthDisplayPercent string
-	AnimationDelayMs    int
+	RepositoryName   string
+	Description      string
+	LangColor        string
+	StarsDisplay     string
+	UpdatedAgo       string
+	AnimationDelayMs int
 }
 
 type topReposTemplateData struct {
@@ -150,9 +150,22 @@ func buildOverviewTemplateData(overview internalmodel.OverviewStats) overviewTem
 }
 
 func buildLanguageTemplateData(languages []internalmodel.LanguageStat) languageTemplateData {
+	// Display percentages use sqrt(bytes) to compress the long-tail dominance
+	// of whichever single language has the largest weighted byte total - "Go
+	// 72%" becomes "Go ~37%", giving smaller-but-still-substantive languages
+	// a visible slice of the rendered bar. The model's untransformed
+	// .Percentage stays unchanged so diagnostics still report the raw
+	// distribution.
+	totalSqrt := 0.0
+	for _, language := range languages {
+		totalSqrt += math.Sqrt(language.Weighted)
+	}
 	items := make([]languageTemplateItem, 0, len(languages))
 	for index, language := range languages {
-		percentage := clampPercentage(language.Percentage)
+		percentage := 0.0
+		if totalSqrt > 0 {
+			percentage = clampPercentage(100 * math.Sqrt(language.Weighted) / totalSqrt)
+		}
 		items = append(items, languageTemplateItem{
 			Name:              strings.TrimSpace(language.Name),
 			Color:             sanitizeColor(language.Color),
@@ -193,30 +206,15 @@ func packLanguageRows(items []languageTemplateItem) int {
 }
 
 func buildTopReposTemplateData(name string, repos []internalmodel.RepoActivity) topReposTemplateData {
-	maxScore := 0.0
-	minScore := math.MaxFloat64
-	for _, repo := range repos {
-		if repo.Score > maxScore {
-			maxScore = repo.Score
-		}
-		if repo.Score < minScore {
-			minScore = repo.Score
-		}
-	}
-	scoreRange := maxScore - minScore
-	colors := []string{"#3572A5", "#555555", "#3178c6", "#DA3434", "#89e051", "#00ADD8"}
 	rows := make([]topRepoView, 0, len(repos))
 	for index, repo := range repos {
-		width := 100.0
-		if scoreRange > 0 {
-			width = topRepoMinBarPercent + (repo.Score-minScore)/scoreRange*(100-topRepoMinBarPercent)
-		}
 		rows = append(rows, topRepoView{
-			RepositoryName:      stripOwnerPrefix(strings.TrimSpace(repo.RepositoryName)),
-			Display:             fmt.Sprintf("%s · ★%s", formatInteger(repo.Commits), formatInteger(repo.Stars)),
-			Color:               sanitizeColor(colors[index%len(colors)]),
-			WidthDisplayPercent: fmt.Sprintf("%.2f", clampPercentage(width)),
-			AnimationDelayMs:    index * animationDelayStepMs,
+			RepositoryName:   stripOwnerPrefix(strings.TrimSpace(repo.RepositoryName)),
+			Description:      truncateString(strings.TrimSpace(repo.Description), 38),
+			LangColor:        sanitizeColor(repo.LangColor),
+			StarsDisplay:     formatInteger(repo.Stars),
+			UpdatedAgo:       repo.UpdatedAgo,
+			AnimationDelayMs: index * animationDelayStepMs,
 		})
 	}
 
@@ -225,6 +223,16 @@ func buildTopReposTemplateData(name string, repos []internalmodel.RepoActivity) 
 		displayName = topRepositoryNameDefault
 	}
 	return topReposTemplateData{Name: displayName, Repos: rows}
+}
+
+func truncateString(value string, maxLen int) string {
+	if len(value) <= maxLen {
+		return value
+	}
+	if maxLen <= 1 {
+		return value[:maxLen]
+	}
+	return value[:maxLen-1] + "…"
 }
 
 func stripOwnerPrefix(repositoryName string) string {

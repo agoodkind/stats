@@ -126,6 +126,7 @@ func (collector *Collector) Collect(ctx context.Context, cfg internalconfig.Conf
 		displayName = viewer.Login
 	}
 
+	publicExternal := filterPublic(externalRepositories)
 	return internalmodel.StatsSummary{
 		Overview: internalmodel.OverviewStats{
 			Name:               displayName,
@@ -134,7 +135,7 @@ func (collector *Collector) Collect(ctx context.Context, cfg internalconfig.Conf
 			TotalContributions: contributionCount,
 			LinesChanged:       additions + deletions,
 			Views:              views,
-			RepositoryCount:    len(publicOwned),
+			RepositoryCount:    len(publicOwned) + len(publicExternal),
 		},
 		Languages: effectiveLanguage,
 		TopRepos:  topRepos,

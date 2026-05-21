@@ -74,10 +74,20 @@ func (collector *Collector) Collect(ctx context.Context, cfg internalconfig.Conf
 		slog.ErrorContext(ctx, "fetch total contributions", "error", err)
 		return internalmodel.StatsSummary{}, fmt.Errorf("fetch total contributions: %w", err)
 	}
+	// Pull commit activity from owned (used for the top-repos ranking) and
+	// from every external repo (private + public) the actor contributes to.
+	// SSO-gated work repos count toward the displayed Lines-of-code total
+	// when the PAT is SSO-authorized for that org; unauthorized repos
+	// return 401/403 and FetchContributorActivity logs+skips them.
 	activities, additions, deletions, err := collector.client.FetchContributorActivity(ctx, publicOwned, collector.now(), cfg.RecencyHalfLife, cfg.RecencyFloor)
 	if err != nil {
 		slog.ErrorContext(ctx, "fetch contributor activity", "error", err)
 		return internalmodel.StatsSummary{}, fmt.Errorf("fetch contributor activity: %w", err)
+	}
+	_, externalAdditions, externalDeletions, err := collector.client.FetchContributorActivity(ctx, externalRepositories, collector.now(), cfg.RecencyHalfLife, cfg.RecencyFloor)
+	if err != nil {
+		slog.ErrorContext(ctx, "fetch external contributor activity", "error", err)
+		return internalmodel.StatsSummary{}, fmt.Errorf("fetch external contributor activity: %w", err)
 	}
 	repoCommitWeights := buildCommitWeightMap(activities, cfg.RecencyFloor)
 	weightedOwned, rawOwned, decisions, includedOwnedCount := collector.collectLanguages(cfg, ownedRepositories, repoCommitWeights)
@@ -126,17 +136,24 @@ func (collector *Collector) Collect(ctx context.Context, cfg internalconfig.Conf
 		displayName = viewer.Login
 	}
 
-	publicExternal := filterPublic(externalRepositories)
+	// "Public repos I own" only counts repos that survive every inclusion
+	// rule the language/top-repos pipelines apply (not archived / disabled /
+	// fork-when-ExcludeForks / excluded-by-name / no language data) so the
+	// header number matches what the rest of the SVGs reflect.
+	activeOwned := filterActiveOwned(cfg, publicOwned)
+	// Contributed-to count includes private external repos by count only:
+	// names never get rendered, so SSO-gated work repos can contribute to
+	// the headline tally without leaking the org/repo name.
 	return internalmodel.StatsSummary{
 		Overview: internalmodel.OverviewStats{
 			Name:                    displayName,
-			Stars:                   sumRepositoryStars(publicOwned),
-			Forks:                   sumRepositoryForks(publicOwned),
+			Stars:                   sumRepositoryStars(activeOwned),
+			Forks:                   sumRepositoryForks(activeOwned),
 			TotalContributions:      contributionCount,
-			LinesChanged:            additions + deletions,
+			LinesChanged:            additions + deletions + externalAdditions + externalDeletions,
 			Views:                   views,
-			OwnedRepositories:       len(publicOwned),
-			ContributedRepositories: len(publicExternal),
+			OwnedRepositories:       len(activeOwned),
+			ContributedRepositories: len(externalRepositories),
 		},
 		Languages: effectiveLanguage,
 		TopRepos:  topRepos,
@@ -170,6 +187,22 @@ func filterPublic(repositories []internalmodel.Repository) []internalmodel.Repos
 		publicRepos = append(publicRepos, repository)
 	}
 	return publicRepos
+}
+
+// filterActiveOwned returns the public owned repos that survive every
+// inclusion rule (not archived / not disabled / not fork-when-ExcludeForks
+// / not excluded-by-name / has language data). Used for the displayed
+// "repos I own" count and the Stars/Forks aggregate sums so those numbers
+// match what the language and top-repos pipelines actually count.
+func filterActiveOwned(cfg internalconfig.Config, repositories []internalmodel.Repository) []internalmodel.Repository {
+	active := make([]internalmodel.Repository, 0, len(repositories))
+	for _, repository := range repositories {
+		if repositoryExclusionReason(cfg, repository, sumRepositoryBytes(repository)) != "" {
+			continue
+		}
+		active = append(active, repository)
+	}
+	return active
 }
 
 // buildCommitWeightMap maps each repository to its average per-commit recency

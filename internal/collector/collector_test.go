@@ -193,23 +193,23 @@ func assertOverviewStats(t *testing.T, overview internalmodel.OverviewStats) {
 	if overview.Name != "SDK User" {
 		t.Fatalf("expected display name SDK User, got %q", overview.Name)
 	}
-	if overview.Stars != 34 {
-		t.Fatalf("expected 34 stars, got %d", overview.Stars)
+	if overview.Stars != 24 {
+		t.Fatalf("expected 24 stars (active-owned only), got %d", overview.Stars)
 	}
-	if overview.Forks != 4 {
-		t.Fatalf("expected 4 forks, got %d", overview.Forks)
+	if overview.Forks != 3 {
+		t.Fatalf("expected 3 forks (active-owned only), got %d", overview.Forks)
 	}
 	if overview.TotalContributions != 321 {
 		t.Fatalf("expected 321 total contributions, got %d", overview.TotalContributions)
 	}
-	if overview.LinesChanged != 333 {
-		t.Fatalf("expected 333 lines changed, got %d", overview.LinesChanged)
+	if overview.LinesChanged != 666 {
+		t.Fatalf("expected 666 lines changed (owned + external), got %d", overview.LinesChanged)
 	}
 	if overview.Views != 789 {
 		t.Fatalf("expected 789 views, got %d", overview.Views)
 	}
-	if overview.OwnedRepositories != 8 {
-		t.Fatalf("expected 8 owned repositories, got %d", overview.OwnedRepositories)
+	if overview.OwnedRepositories != 3 {
+		t.Fatalf("expected 3 active-owned repositories, got %d", overview.OwnedRepositories)
 	}
 	if overview.ContributedRepositories != 2 {
 		t.Fatalf("expected 2 contributed repositories, got %d", overview.ContributedRepositories)

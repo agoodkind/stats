@@ -7,7 +7,7 @@ actor = "agoodkind"
 excluded_repos = []
 excluded_langs = []
 exclude_forked_repos = true
-include_external = false
+include_external = true
 
 [recency]
 half_life = "3y"

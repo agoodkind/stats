@@ -205,7 +205,11 @@ func (collector *Collector) rankTopRepos(cfg internalconfig.Config, ownedReposit
 			continue
 		}
 		activity.Stars = repository.Stars
-		activity.Score = math.Log10(1+activity.WeightedCommits) + math.Log10(1+float64(activity.Stars))
+		// Star coefficient of 2 lifts popularity outliers above pure
+		// commit-volume leaders: a single 16-star repo beats unstarred
+		// repos with ~10x the commit count, while two repos at the same
+		// star count still sort by commits.
+		activity.Score = math.Log10(1+activity.WeightedCommits) + 2*math.Log10(1+float64(activity.Stars))
 		activity.Description = repository.Description
 		activity.LangColor = primaryLanguageColor(repository)
 		activity.UpdatedAgo = humanizeAge(collector.now().Sub(repository.PushedAt))

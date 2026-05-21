@@ -67,6 +67,7 @@ type overviewTemplateData struct {
 func (overviewTemplateData) svgTemplateMarker() {}
 
 type languageTemplateData struct {
+	Name                string
 	Items               []languageTemplateItem
 	SVGHeight           int
 	ForeignObjectHeight int
@@ -110,7 +111,7 @@ func WriteSVGs(summary internalmodel.StatsSummary) error {
 	if err := writeTemplate(filepath.Join(generatedDirectory, "overview.svg"), overviewTemplatePath, buildOverviewTemplateData(summary.Overview)); err != nil {
 		return err
 	}
-	if err := writeTemplate(filepath.Join(generatedDirectory, "languages.svg"), languagesTemplatePath, buildLanguageTemplateData(summary.Languages)); err != nil {
+	if err := writeTemplate(filepath.Join(generatedDirectory, "languages.svg"), languagesTemplatePath, buildLanguageTemplateData(summary.Overview.Name, summary.Languages)); err != nil {
 		return err
 	}
 	return writeTemplate(filepath.Join(generatedDirectory, "top_repos.svg"), topReposTemplatePath, buildTopReposTemplateData(summary.Overview.Name, summary.TopRepos))
@@ -149,7 +150,7 @@ func buildOverviewTemplateData(overview internalmodel.OverviewStats) overviewTem
 	}
 }
 
-func buildLanguageTemplateData(languages []internalmodel.LanguageStat) languageTemplateData {
+func buildLanguageTemplateData(name string, languages []internalmodel.LanguageStat) languageTemplateData {
 	// Display percentages use sqrt(bytes) to compress the long-tail dominance
 	// of whichever single language has the largest weighted byte total - "Go
 	// 72%" becomes "Go ~37%", giving smaller-but-still-substantive languages
@@ -176,7 +177,12 @@ func buildLanguageTemplateData(languages []internalmodel.LanguageStat) languageT
 	}
 	rows := packLanguageRows(items)
 	svgHeight := max(languagesChromeHeight+rows*languagesItemRowHeight, languagesMinSVGHeight)
+	displayName := strings.TrimSpace(name)
+	if displayName == "" {
+		displayName = topRepositoryNameDefault
+	}
 	return languageTemplateData{
+		Name:                displayName,
 		Items:               items,
 		SVGHeight:           svgHeight,
 		ForeignObjectHeight: svgHeight - 34,

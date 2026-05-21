@@ -51,6 +51,8 @@ foreignObject {
   padding: 6px 8px;
   gap: 2px;
   min-height: 52px;
+  min-width: 0;
+  overflow: hidden;
   transform: translateX(-200%);
   animation: slideIn 1.6s ease-in-out forwards;
 }
@@ -121,15 +123,15 @@ foreignObject {
 <div class="grid">
 
 <div class="card" style="animation-delay: 0ms">
-<div class="name"><span class="pill" style="background-color: #00ADD8;"></span>clyde</div>
-<div class="desc">A power-user companion for Codex and …</div>
-<div class="stats">&#9733; 1 &#183; today</div>
-</div>
-
-<div class="card" style="animation-delay: 150ms">
 <div class="name"><span class="pill" style="background-color: #F05138;"></span>macos-smc-fan</div>
 <div class="desc">Research into SMC fan control on Appl…</div>
 <div class="stats">&#9733; 17 &#183; 10d ago</div>
+</div>
+
+<div class="card" style="animation-delay: 150ms">
+<div class="name"><span class="pill" style="background-color: #00ADD8;"></span>clyde</div>
+<div class="desc">A power-user companion for Codex and …</div>
+<div class="stats">&#9733; 1 &#183; today</div>
 </div>
 
 <div class="card" style="animation-delay: 300ms">
@@ -139,21 +141,21 @@ foreignObject {
 </div>
 
 <div class="card" style="animation-delay: 450ms">
+<div class="name"><span class="pill" style="background-color: #b07219;"></span>buyme-ebay-clone</div>
+<div class="desc">Rutgers 01:198:336 Principles of Info…</div>
+<div class="stats">&#9733; 3 &#183; 5y ago</div>
+</div>
+
+<div class="card" style="animation-delay: 600ms">
 <div class="name"><span class="pill" style="background-color: #00ADD8;"></span>goodkind.io</div>
 <div class="desc">My overengineered personal website bu…</div>
 <div class="stats">&#9733; 1 &#183; 2d ago</div>
 </div>
 
-<div class="card" style="animation-delay: 600ms">
+<div class="card" style="animation-delay: 750ms">
 <div class="name"><span class="pill" style="background-color: #00ADD8;"></span>agent-gate</div>
 <div class="desc">Unified hook handler for Claude Code …</div>
-<div class="stats">&#9733; 1 &#183; 5d ago</div>
-</div>
-
-<div class="card" style="animation-delay: 750ms">
-<div class="name"><span class="pill" style="background-color: #00ADD8;"></span>cloudflared-opnsense</div>
-<div class="desc">OPNsense plugin for Cloudflare Tunnel…</div>
-<div class="stats">&#9733; 1 &#183; today</div>
+<div class="stats">&#9733; 1 &#183; 6d ago</div>
 </div>
 
 </div>

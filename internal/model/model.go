@@ -103,16 +103,19 @@ type ExternalContributionEstimate struct {
 	EstimateNote           string         `json:"estimateNote"`
 }
 
-// OverviewStats backs the overview SVG: totals across the viewer's owned
-// repositories.
+// OverviewStats backs the overview SVG: per-row totals shown in the header
+// card. OwnedRepositories counts public repos the viewer owns;
+// ContributedRepositories counts public repos the viewer has commits in but
+// does not own (GitHub's repositoriesContributedTo set).
 type OverviewStats struct {
-	Name               string `json:"name"`
-	Stars              int    `json:"stars"`
-	Forks              int    `json:"forks"`
-	TotalContributions int    `json:"totalContributions"`
-	LinesChanged       int    `json:"linesChanged"`
-	Views              int    `json:"views"`
-	RepositoryCount    int    `json:"repositoryCount"`
+	Name                    string `json:"name"`
+	Stars                   int    `json:"stars"`
+	Forks                   int    `json:"forks"`
+	TotalContributions      int    `json:"totalContributions"`
+	LinesChanged            int    `json:"linesChanged"`
+	Views                   int    `json:"views"`
+	OwnedRepositories       int    `json:"ownedRepositories"`
+	ContributedRepositories int    `json:"contributedRepositories"`
 }
 
 // DiagnosticsSummary is the high-level scoreboard at the top of the

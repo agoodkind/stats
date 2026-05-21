@@ -26,13 +26,14 @@ func TestWriteSVGsEscapesDangerousContent(t *testing.T) {
 
 	summary := internalmodel.StatsSummary{
 		Overview: internalmodel.OverviewStats{
-			Name:               `A <script>alert("x")</script> & "Owner"`,
-			Stars:              1000,
-			Forks:              2000,
-			TotalContributions: 3000000,
-			LinesChanged:       4000000,
-			Views:              5000,
-			RepositoryCount:    6000,
+			Name:                    `A <script>alert("x")</script> & "Owner"`,
+			Stars:                   1000,
+			Forks:                   2000,
+			TotalContributions:      3000000,
+			LinesChanged:            4000000,
+			Views:                   5000,
+			OwnedRepositories:       6000,
+			ContributedRepositories: 7000,
 		},
 		Languages: []internalmodel.LanguageStat{
 			{
@@ -92,7 +93,7 @@ func TestWriteSVGsEscapesDangerousContent(t *testing.T) {
 		t.Fatalf("read overview.svg: %v", err)
 	}
 	overviewSVG := string(overviewSVGBytes)
-	for _, expectedValue := range []string{"1,000", "2,000", "3,000,000", "4,000,000", "5,000", "6,000"} {
+	for _, expectedValue := range []string{"1,000", "2,000", "3,000,000", "4,000,000", "5,000", "6,000", "7,000"} {
 		if !strings.Contains(overviewSVG, expectedValue) {
 			t.Fatalf("expected formatted overview value %q in overview.svg, got %s", expectedValue, overviewSVG)
 		}

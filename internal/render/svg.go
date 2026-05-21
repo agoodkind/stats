@@ -55,13 +55,14 @@ type svgTemplateData interface {
 }
 
 type overviewTemplateData struct {
-	Name               string
-	Stars              string
-	Forks              string
-	TotalContributions string
-	LinesChanged       string
-	Views              string
-	RepositoryCount    string
+	Name                    string
+	Stars                   string
+	Forks                   string
+	TotalContributions      string
+	LinesChanged            string
+	Views                   string
+	OwnedRepositories       string
+	ContributedRepositories string
 }
 
 func (overviewTemplateData) svgTemplateMarker() {}
@@ -140,13 +141,14 @@ func writeTemplate(outputPath string, templatePath string, data svgTemplateData)
 
 func buildOverviewTemplateData(overview internalmodel.OverviewStats) overviewTemplateData {
 	return overviewTemplateData{
-		Name:               strings.TrimSpace(overview.Name),
-		Stars:              formatInteger(overview.Stars),
-		Forks:              formatInteger(overview.Forks),
-		TotalContributions: formatInteger(overview.TotalContributions),
-		LinesChanged:       formatInteger(overview.LinesChanged),
-		Views:              formatInteger(overview.Views),
-		RepositoryCount:    formatInteger(overview.RepositoryCount),
+		Name:                    strings.TrimSpace(overview.Name),
+		Stars:                   formatInteger(overview.Stars),
+		Forks:                   formatInteger(overview.Forks),
+		TotalContributions:      formatInteger(overview.TotalContributions),
+		LinesChanged:            formatInteger(overview.LinesChanged),
+		Views:                   formatInteger(overview.Views),
+		OwnedRepositories:       formatInteger(overview.OwnedRepositories),
+		ContributedRepositories: formatInteger(overview.ContributedRepositories),
 	}
 }
 

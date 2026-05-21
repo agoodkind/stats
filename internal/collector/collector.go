@@ -129,13 +129,14 @@ func (collector *Collector) Collect(ctx context.Context, cfg internalconfig.Conf
 	publicExternal := filterPublic(externalRepositories)
 	return internalmodel.StatsSummary{
 		Overview: internalmodel.OverviewStats{
-			Name:               displayName,
-			Stars:              sumRepositoryStars(publicOwned),
-			Forks:              sumRepositoryForks(publicOwned),
-			TotalContributions: contributionCount,
-			LinesChanged:       additions + deletions,
-			Views:              views,
-			RepositoryCount:    len(publicOwned) + len(publicExternal),
+			Name:                    displayName,
+			Stars:                   sumRepositoryStars(publicOwned),
+			Forks:                   sumRepositoryForks(publicOwned),
+			TotalContributions:      contributionCount,
+			LinesChanged:            additions + deletions,
+			Views:                   views,
+			OwnedRepositories:       len(publicOwned),
+			ContributedRepositories: len(publicExternal),
 		},
 		Languages: effectiveLanguage,
 		TopRepos:  topRepos,

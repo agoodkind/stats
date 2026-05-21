@@ -208,8 +208,11 @@ func assertOverviewStats(t *testing.T, overview internalmodel.OverviewStats) {
 	if overview.Views != 789 {
 		t.Fatalf("expected 789 views, got %d", overview.Views)
 	}
-	if overview.RepositoryCount != 10 {
-		t.Fatalf("expected 10 repositories (8 owned + 2 external), got %d", overview.RepositoryCount)
+	if overview.OwnedRepositories != 8 {
+		t.Fatalf("expected 8 owned repositories, got %d", overview.OwnedRepositories)
+	}
+	if overview.ContributedRepositories != 2 {
+		t.Fatalf("expected 2 contributed repositories, got %d", overview.ContributedRepositories)
 	}
 }
 

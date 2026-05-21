@@ -57,7 +57,7 @@ func TestWriteSVGsEscapesDangerousContent(t *testing.T) {
 		},
 	}
 
-	if err := WriteSVGs(summary); err != nil {
+	if err := WriteSVGs(summary, Options{LanguagesCompression: "sqrt"}); err != nil {
 		t.Fatalf("WriteSVGs returned error: %v", err)
 	}
 

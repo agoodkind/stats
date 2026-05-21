@@ -19,6 +19,8 @@ const (
 	defaultRecencyHalfLife = 3 * 365 * 24 * time.Hour
 	defaultRecencyFloor    = 0.05
 	hoursPerYear           = 365 * 24
+	defaultTopReposLimit   = 6
+	defaultStarCoefficient = 2.0
 )
 
 var (
@@ -26,26 +28,77 @@ var (
 	githubActorEnvironmentKeys = []string{"GH_ACTOR", "GITHUB_ACTOR"}
 )
 
+// ContributedInclude controls whether private external repos count toward the
+// Overview "open-source repos I contribute to" tally.
+type ContributedInclude string
+
+const (
+	// ContributedAll includes private (SSO-gated) external repos.
+	ContributedAll ContributedInclude = "all"
+	// ContributedPublicOnly drops private external repos.
+	ContributedPublicOnly ContributedInclude = "public-only"
+)
+
+// LanguagesCompression controls the curve applied to weighted byte totals
+// before language percentages are rendered.
+type LanguagesCompression string
+
+const (
+	// LanguagesLinear keeps raw byte ratios (single dominant language stays
+	// dominant).
+	LanguagesLinear LanguagesCompression = "linear"
+	// LanguagesSqrt compresses with sqrt(bytes) so the long tail gets a
+	// visible slice.
+	LanguagesSqrt LanguagesCompression = "sqrt"
+	// LanguagesLog compresses with log10(1+bytes) - most aggressive
+	// flattening.
+	LanguagesLog LanguagesCompression = "log"
+)
+
 // Config holds the fully-resolved runtime configuration that the rest of the
 // application reads.
 type Config struct {
-	Path            string
-	GitHubToken     string
-	GitHubActor     string
-	ExcludedRepos   map[string]struct{}
-	ExcludedLangs   map[string]struct{}
-	ExcludeForks    bool
-	IncludeExternal bool
+	Path        string
+	GitHubToken string
+	GitHubActor string
+	LogLevel    string
+
 	RecencyHalfLife time.Duration
 	RecencyFloor    float64
-	LogLevel        string
+
+	// Owned-repo inclusion rules.
+	ExcludeArchived  bool
+	ExcludeDisabled  bool
+	ExcludeForks     bool
+	RequireLanguages bool
+	ExcludedRepos    map[string]struct{}
+	ExcludedLangs    map[string]struct{}
+
+	// External (contributed) repos behavior.
+	ContributedInclude        ContributedInclude
+	ContributedIncludeInLOC   bool
+	ContributedIncludeInLangs bool
+
+	// Top-repos card grid.
+	TopReposLimit           int
+	TopReposStarCoefficient float64
+
+	// Languages chart.
+	LanguagesCompression LanguagesCompression
+
+	// Lifetime views counter seed.
+	ViewsSeed int
 }
 
 type fileConfig struct {
-	GitHub  githubConfig  `toml:"github"`
-	Filters filtersConfig `toml:"filters"`
-	Recency recencyConfig `toml:"recency"`
-	Logging loggingConfig `toml:"logging"`
+	GitHub      githubConfig      `toml:"github"`
+	Logging     loggingConfig     `toml:"logging"`
+	Recency     recencyConfig     `toml:"recency"`
+	Owned       ownedConfig       `toml:"owned"`
+	Contributed contributedConfig `toml:"contributed"`
+	TopRepos    topReposConfig    `toml:"top_repos"`
+	Languages   languagesConfig   `toml:"languages"`
+	Views       viewsConfig       `toml:"views"`
 }
 
 type githubConfig struct {
@@ -53,11 +106,8 @@ type githubConfig struct {
 	Actor string `toml:"actor"`
 }
 
-type filtersConfig struct {
-	ExcludedRepos   []string `toml:"excluded_repos"`
-	ExcludedLangs   []string `toml:"excluded_langs"`
-	ExcludeForks    bool     `toml:"exclude_forked_repos"`
-	IncludeExternal bool     `toml:"include_external"`
+type loggingConfig struct {
+	Level string `toml:"level"`
 }
 
 type recencyConfig struct {
@@ -65,8 +115,32 @@ type recencyConfig struct {
 	Floor    *float64 `toml:"floor"`
 }
 
-type loggingConfig struct {
-	Level string `toml:"level"`
+type ownedConfig struct {
+	ExcludeArchived  *bool    `toml:"exclude_archived"`
+	ExcludeDisabled  *bool    `toml:"exclude_disabled"`
+	ExcludeForks     *bool    `toml:"exclude_forks"`
+	RequireLanguages *bool    `toml:"require_languages"`
+	ExcludedRepos    []string `toml:"excluded_repos"`
+	ExcludedLangs    []string `toml:"excluded_langs"`
+}
+
+type contributedConfig struct {
+	Include            string `toml:"include"`
+	IncludeInLOC       *bool  `toml:"include_in_loc"`
+	IncludeInLanguages *bool  `toml:"include_in_languages"`
+}
+
+type topReposConfig struct {
+	Limit           *int     `toml:"limit"`
+	StarCoefficient *float64 `toml:"star_coefficient"`
+}
+
+type languagesConfig struct {
+	Compression string `toml:"compression"`
+}
+
+type viewsConfig struct {
+	Seed *int `toml:"seed"`
 }
 
 // DefaultPath returns the default config file path used when no -config flag is supplied.
@@ -95,16 +169,25 @@ func LoadFromPath(path string) (Config, error) {
 	}
 
 	cfg := Config{
-		Path:            cleanPath,
-		GitHubToken:     firstNonEmpty(rawConfig.GitHub.Token, firstEnvironmentValue(githubTokenEnvironmentKeys)),
-		GitHubActor:     firstNonEmpty(rawConfig.GitHub.Actor, firstEnvironmentValue(githubActorEnvironmentKeys)),
-		ExcludedRepos:   stringSet(rawConfig.Filters.ExcludedRepos, false),
-		ExcludedLangs:   stringSet(rawConfig.Filters.ExcludedLangs, true),
-		ExcludeForks:    rawConfig.Filters.ExcludeForks,
-		IncludeExternal: rawConfig.Filters.IncludeExternal,
-		RecencyHalfLife: defaultRecencyHalfLife,
-		RecencyFloor:    defaultRecencyFloor,
-		LogLevel:        firstNonEmpty(rawConfig.Logging.Level, "INFO"),
+		Path:                      cleanPath,
+		GitHubToken:               firstNonEmpty(rawConfig.GitHub.Token, firstEnvironmentValue(githubTokenEnvironmentKeys)),
+		GitHubActor:               firstNonEmpty(rawConfig.GitHub.Actor, firstEnvironmentValue(githubActorEnvironmentKeys)),
+		LogLevel:                  firstNonEmpty(rawConfig.Logging.Level, "INFO"),
+		RecencyHalfLife:           defaultRecencyHalfLife,
+		RecencyFloor:              defaultRecencyFloor,
+		ExcludeArchived:           boolDefaultTrue(rawConfig.Owned.ExcludeArchived),
+		ExcludeDisabled:           boolDefaultTrue(rawConfig.Owned.ExcludeDisabled),
+		ExcludeForks:              boolDefaultTrue(rawConfig.Owned.ExcludeForks),
+		RequireLanguages:          boolDefaultTrue(rawConfig.Owned.RequireLanguages),
+		ExcludedRepos:             stringSet(rawConfig.Owned.ExcludedRepos, false),
+		ExcludedLangs:             stringSet(rawConfig.Owned.ExcludedLangs, true),
+		ContributedInclude:        ContributedAll,
+		ContributedIncludeInLOC:   boolDefaultTrue(rawConfig.Contributed.IncludeInLOC),
+		ContributedIncludeInLangs: boolDefaultTrue(rawConfig.Contributed.IncludeInLanguages),
+		TopReposLimit:             intOrDefault(rawConfig.TopRepos.Limit, defaultTopReposLimit),
+		TopReposStarCoefficient:   floatOrDefault(rawConfig.TopRepos.StarCoefficient, defaultStarCoefficient),
+		LanguagesCompression:      LanguagesSqrt,
+		ViewsSeed:                 intOrDefault(rawConfig.Views.Seed, 0),
 	}
 
 	if cfg.GitHubToken == "" {
@@ -127,6 +210,22 @@ func LoadFromPath(path string) (Config, error) {
 			return Config{}, err
 		}
 		cfg.RecencyFloor = parsedFloor
+	}
+
+	if trimmed := strings.TrimSpace(rawConfig.Contributed.Include); trimmed != "" {
+		parsed, err := parseContributedInclude(trimmed)
+		if err != nil {
+			return Config{}, err
+		}
+		cfg.ContributedInclude = parsed
+	}
+
+	if trimmed := strings.TrimSpace(rawConfig.Languages.Compression); trimmed != "" {
+		parsed, err := parseLanguagesCompression(trimmed)
+		if err != nil {
+			return Config{}, err
+		}
+		cfg.LanguagesCompression = parsed
 	}
 
 	cfg.Path = resolvedPath(cleanPath)
@@ -174,6 +273,59 @@ func stringSet(values []string, lower bool) map[string]struct{} {
 		result[trimmedValue] = struct{}{}
 	}
 	return result
+}
+
+// boolDefaultTrue returns *value if set, otherwise true. Every owned-/
+// contributed-exclusion knob in this config defaults to true; an explicit
+// helper makes the call-site assignments mechanical rather than passing a
+// constant `true` argument each time.
+func boolDefaultTrue(value *bool) bool {
+	if value == nil {
+		return true
+	}
+	return *value
+}
+
+func intOrDefault(value *int, fallback int) int {
+	if value == nil {
+		return fallback
+	}
+	return *value
+}
+
+func floatOrDefault(value *float64, fallback float64) float64 {
+	if value == nil {
+		return fallback
+	}
+	return *value
+}
+
+func parseContributedInclude(value string) (ContributedInclude, error) {
+	switch ContributedInclude(strings.ToLower(value)) {
+	case ContributedAll:
+		return ContributedAll, nil
+	case ContributedPublicOnly:
+		return ContributedPublicOnly, nil
+	default:
+		err := fmt.Errorf("contributed.include %q must be %q or %q", value, ContributedAll, ContributedPublicOnly)
+		slog.Error("invalid contributed.include", "value", value, "error", err)
+		return "", err
+	}
+}
+
+func parseLanguagesCompression(value string) (LanguagesCompression, error) {
+	switch LanguagesCompression(strings.ToLower(value)) {
+	case LanguagesLinear:
+		return LanguagesLinear, nil
+	case LanguagesSqrt:
+		return LanguagesSqrt, nil
+	case LanguagesLog:
+		return LanguagesLog, nil
+	default:
+		err := fmt.Errorf("languages.compression %q must be %q, %q, or %q", value, LanguagesLinear, LanguagesSqrt, LanguagesLog)
+		slog.Error("invalid languages.compression", "value", value, "error", err)
+		return "", err
+	}
 }
 
 func parseHalfLife(value string) (time.Duration, error) {

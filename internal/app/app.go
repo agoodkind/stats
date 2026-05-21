@@ -63,7 +63,7 @@ func runGenerate(ctx context.Context, cfg internalconfig.Config) error {
 		logger.ErrorContext(ctx, "collect stats", "error", err)
 		return fmt.Errorf("collect stats: %w", err)
 	}
-	if err := internalrender.WriteSVGs(summary); err != nil {
+	if err := internalrender.WriteSVGs(summary, internalrender.Options{LanguagesCompression: string(cfg.LanguagesCompression)}); err != nil {
 		logger.ErrorContext(ctx, "write svgs", "error", err)
 		return fmt.Errorf("write svgs: %w", err)
 	}

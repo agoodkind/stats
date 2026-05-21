@@ -179,11 +179,20 @@ func (fixtureConfig collectorFixtureConfig) toConfig() internalconfig.Config {
 	}
 
 	return internalconfig.Config{
-		ExcludedRepos:   excludedRepos,
-		ExcludedLangs:   excludedLangs,
-		ExcludeForks:    fixtureConfig.ExcludeForks,
-		RecencyHalfLife: time.Duration(fixtureConfig.RecencyHalfLifeHours) * time.Hour,
-		RecencyFloor:    fixtureConfig.RecencyFloor,
+		ExcludedRepos:             excludedRepos,
+		ExcludedLangs:             excludedLangs,
+		ExcludeArchived:           true,
+		ExcludeDisabled:           true,
+		ExcludeForks:              fixtureConfig.ExcludeForks,
+		RequireLanguages:          true,
+		ContributedInclude:        internalconfig.ContributedAll,
+		ContributedIncludeInLOC:   true,
+		ContributedIncludeInLangs: false,
+		TopReposLimit:             6,
+		TopReposStarCoefficient:   2.0,
+		LanguagesCompression:      internalconfig.LanguagesSqrt,
+		RecencyHalfLife:           time.Duration(fixtureConfig.RecencyHalfLifeHours) * time.Hour,
+		RecencyFloor:              fixtureConfig.RecencyFloor,
 	}
 }
 

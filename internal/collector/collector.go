@@ -56,6 +56,33 @@ func New(client githubService) *Collector {
 	return &Collector{client: client, now: time.Now, viewsHistoryPath: ViewsHistoryPath}
 }
 
+// accumulateViews loads the on-disk views history, merges in the fresh
+// 14-day window, applies the config's seed override, persists the result,
+// and returns the displayed lifetime total. Returns 0 with no error when
+// viewsHistoryPath is empty (tests).
+func (collector *Collector) accumulateViews(ctx context.Context, cfg internalconfig.Config, freshViews map[string]map[string]int) (int, error) {
+	if collector.viewsHistoryPath == "" {
+		return 0, nil
+	}
+	viewsHistory, err := internalviewshistory.Load(collector.viewsHistoryPath)
+	if err != nil {
+		slog.ErrorContext(ctx, "load views history", "path", collector.viewsHistoryPath, "error", err)
+		return 0, fmt.Errorf("load views history: %w", err)
+	}
+	// config.toml's views.seed is the source of truth so the user can
+	// adjust the baseline by editing the config; it overrides whatever
+	// value happens to be in the on-disk history.
+	if cfg.ViewsSeed > 0 {
+		viewsHistory.Seed = cfg.ViewsSeed
+	}
+	viewsHistory = internalviewshistory.Merge(viewsHistory, freshViews)
+	if err := internalviewshistory.Save(collector.viewsHistoryPath, viewsHistory); err != nil {
+		slog.ErrorContext(ctx, "save views history", "path", collector.viewsHistoryPath, "error", err)
+		return 0, fmt.Errorf("save views history: %w", err)
+	}
+	return internalviewshistory.Total(viewsHistory), nil
+}
+
 // Collect runs every GitHub fetch in sequence and assembles a StatsSummary
 // plus a detailed diagnostics report.
 func (collector *Collector) Collect(ctx context.Context, cfg internalconfig.Config) (internalmodel.StatsSummary, error) {
@@ -74,20 +101,22 @@ func (collector *Collector) Collect(ctx context.Context, cfg internalconfig.Conf
 		slog.ErrorContext(ctx, "fetch total contributions", "error", err)
 		return internalmodel.StatsSummary{}, fmt.Errorf("fetch total contributions: %w", err)
 	}
-	// Pull commit activity from owned (used for the top-repos ranking) and
-	// from every external repo (private + public) the actor contributes to.
-	// SSO-gated work repos count toward the displayed Lines-of-code total
-	// when the PAT is SSO-authorized for that org; unauthorized repos
-	// return 401/403 and FetchContributorActivity logs+skips them.
+	// Pull commit activity from owned (used for the top-repos ranking).
+	// SSO-gated work repos return 401/403 here too if the PAT is not
+	// authorized for the org; FetchContributorActivity logs+skips them.
 	activities, additions, deletions, err := collector.client.FetchContributorActivity(ctx, publicOwned, collector.now(), cfg.RecencyHalfLife, cfg.RecencyFloor)
 	if err != nil {
 		slog.ErrorContext(ctx, "fetch contributor activity", "error", err)
 		return internalmodel.StatsSummary{}, fmt.Errorf("fetch contributor activity: %w", err)
 	}
-	_, externalAdditions, externalDeletions, err := collector.client.FetchContributorActivity(ctx, externalRepositories, collector.now(), cfg.RecencyHalfLife, cfg.RecencyFloor)
-	if err != nil {
-		slog.ErrorContext(ctx, "fetch external contributor activity", "error", err)
-		return internalmodel.StatsSummary{}, fmt.Errorf("fetch external contributor activity: %w", err)
+	externalAdditions := 0
+	externalDeletions := 0
+	if cfg.ContributedIncludeInLOC {
+		_, externalAdditions, externalDeletions, err = collector.client.FetchContributorActivity(ctx, externalRepositories, collector.now(), cfg.RecencyHalfLife, cfg.RecencyFloor)
+		if err != nil {
+			slog.ErrorContext(ctx, "fetch external contributor activity", "error", err)
+			return internalmodel.StatsSummary{}, fmt.Errorf("fetch external contributor activity: %w", err)
+		}
 	}
 	repoCommitWeights := buildCommitWeightMap(activities, cfg.RecencyFloor)
 	weightedOwned, rawOwned, decisions, includedOwnedCount := collector.collectLanguages(cfg, ownedRepositories, repoCommitWeights)
@@ -96,19 +125,9 @@ func (collector *Collector) Collect(ctx context.Context, cfg internalconfig.Conf
 		slog.ErrorContext(ctx, "fetch views", "error", err)
 		return internalmodel.StatsSummary{}, fmt.Errorf("fetch views: %w", err)
 	}
-	views := 0
-	if collector.viewsHistoryPath != "" {
-		viewsHistory, err := internalviewshistory.Load(collector.viewsHistoryPath)
-		if err != nil {
-			slog.ErrorContext(ctx, "load views history", "path", collector.viewsHistoryPath, "error", err)
-			return internalmodel.StatsSummary{}, fmt.Errorf("load views history: %w", err)
-		}
-		viewsHistory = internalviewshistory.Merge(viewsHistory, freshViews)
-		if err := internalviewshistory.Save(collector.viewsHistoryPath, viewsHistory); err != nil {
-			slog.ErrorContext(ctx, "save views history", "path", collector.viewsHistoryPath, "error", err)
-			return internalmodel.StatsSummary{}, fmt.Errorf("save views history: %w", err)
-		}
-		views = internalviewshistory.Total(viewsHistory)
+	views, err := collector.accumulateViews(ctx, cfg, freshViews)
+	if err != nil {
+		return internalmodel.StatsSummary{}, err
 	}
 	externalEstimates, err := collector.client.EstimateExternalContributions(ctx, externalRepositories)
 	if err != nil {
@@ -118,7 +137,7 @@ func (collector *Collector) Collect(ctx context.Context, cfg internalconfig.Conf
 	collector.applyExternalWeights(cfg, externalRepositories, externalEstimates)
 	externalEstimatedLanguage := aggregateExternalLanguages(cfg, externalEstimates)
 	effectiveLanguage := weightedOwned
-	if cfg.IncludeExternal {
+	if cfg.ContributedIncludeInLangs {
 		effectiveLanguage = mergeLanguageStats(weightedOwned, externalEstimatedLanguage)
 	}
 
@@ -137,13 +156,14 @@ func (collector *Collector) Collect(ctx context.Context, cfg internalconfig.Conf
 	}
 
 	// "Public repos I own" only counts repos that survive every inclusion
-	// rule the language/top-repos pipelines apply (not archived / disabled /
-	// fork-when-ExcludeForks / excluded-by-name / no language data) so the
-	// header number matches what the rest of the SVGs reflect.
+	// rule the language/top-repos pipelines apply (configured by [owned] in
+	// config.toml) so the header number matches what the rest of the SVGs
+	// reflect.
 	activeOwned := filterActiveOwned(cfg, publicOwned)
-	// Contributed-to count includes private external repos by count only:
-	// names never get rendered, so SSO-gated work repos can contribute to
-	// the headline tally without leaking the org/repo name.
+	contributedRepos := externalRepositories
+	if cfg.ContributedInclude == internalconfig.ContributedPublicOnly {
+		contributedRepos = filterPublic(externalRepositories)
+	}
 	return internalmodel.StatsSummary{
 		Overview: internalmodel.OverviewStats{
 			Name:                    displayName,
@@ -153,7 +173,7 @@ func (collector *Collector) Collect(ctx context.Context, cfg internalconfig.Conf
 			LinesChanged:            additions + deletions + externalAdditions + externalDeletions,
 			Views:                   views,
 			OwnedRepositories:       len(activeOwned),
-			ContributedRepositories: len(externalRepositories),
+			ContributedRepositories: len(contributedRepos),
 		},
 		Languages: effectiveLanguage,
 		TopRepos:  topRepos,
@@ -171,8 +191,6 @@ func (collector *Collector) Collect(ctx context.Context, cfg internalconfig.Conf
 		Repositories: ownedRepositories,
 	}, nil
 }
-
-const topRepoLimit = 6
 
 // filterPublic returns only repositories whose IsPrivate is false. Used to
 // strip private repos out of every downstream call so their names, traffic
@@ -240,11 +258,10 @@ func (collector *Collector) rankTopRepos(cfg internalconfig.Config, ownedReposit
 			continue
 		}
 		activity.Stars = repository.Stars
-		// Star coefficient of 2 lifts popularity outliers above pure
-		// commit-volume leaders: a single 16-star repo beats unstarred
-		// repos with ~10x the commit count, while two repos at the same
-		// star count still sort by commits.
-		activity.Score = math.Log10(1+activity.WeightedCommits) + 2*math.Log10(1+float64(activity.Stars))
+		// Score = log10(1+weighted_commits) + star_coefficient * log10(1+stars).
+		// Configurable so popularity vs commit-volume can be retuned without
+		// a code change.
+		activity.Score = math.Log10(1+activity.WeightedCommits) + cfg.TopReposStarCoefficient*math.Log10(1+float64(activity.Stars))
 		activity.Description = repository.Description
 		activity.LangColor = primaryLanguageColor(repository)
 		activity.UpdatedAgo = humanizeAge(collector.now().Sub(repository.PushedAt))
@@ -257,8 +274,8 @@ func (collector *Collector) rankTopRepos(cfg internalconfig.Config, ownedReposit
 		}
 		return ranked[left].Score > ranked[right].Score
 	})
-	if len(ranked) > topRepoLimit {
-		ranked = ranked[:topRepoLimit]
+	if cfg.TopReposLimit > 0 && len(ranked) > cfg.TopReposLimit {
+		ranked = ranked[:cfg.TopReposLimit]
 	}
 	return ranked
 }
@@ -349,10 +366,10 @@ func repositoryExclusionReason(cfg internalconfig.Config, repository internalmod
 	if repository.IsPrivate {
 		return "private"
 	}
-	if repository.IsArchived {
+	if cfg.ExcludeArchived && repository.IsArchived {
 		return "archived"
 	}
-	if repository.IsDisabled {
+	if cfg.ExcludeDisabled && repository.IsDisabled {
 		return "disabled"
 	}
 	if cfg.ExcludeForks && repository.IsFork {
@@ -361,7 +378,7 @@ func repositoryExclusionReason(cfg internalconfig.Config, repository internalmod
 	if _, excluded := cfg.ExcludedRepos[repository.NameWithOwner]; excluded {
 		return "excluded_repo"
 	}
-	if rawBytes == 0 {
+	if cfg.RequireLanguages && rawBytes == 0 {
 		return "missing_language_data"
 	}
 	return ""
@@ -413,7 +430,7 @@ func buildDiagnosticsSummary(cfg internalconfig.Config, ownedCount int, external
 		ExternalRepositoryCount: externalCount,
 		IncludedOwnedCount:      includedOwnedCount,
 		ExcludedOwnedCount:      ownedCount - includedOwnedCount,
-		IncludeExternal:         cfg.IncludeExternal,
+		IncludeExternal:         cfg.ContributedIncludeInLangs,
 		EstimatedExternalCount:  estimatedExternalCount,
 		UnknownExternalCount:    unknownExternalCount,
 		OwnedWeightedBytes:      sumLanguageWeighted(weightedOwned),

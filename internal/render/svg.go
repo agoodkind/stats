@@ -102,9 +102,18 @@ func (topReposTemplateData) svgTemplateMarker() {}
 
 const animationDelayStepMs = 150
 
+// Options controls render-time behavior that is not part of the data model
+// (e.g. percentage-compression shape for the languages chart).
+type Options struct {
+	// LanguagesCompression selects how language byte totals are mapped to
+	// displayed percentages: "linear", "sqrt", or "log". Empty defaults to
+	// "sqrt".
+	LanguagesCompression string
+}
+
 // WriteSVGs renders the three stats-gh SVGs (overview, languages, top_repos)
 // from the supplied summary into the generated/ directory.
-func WriteSVGs(summary internalmodel.StatsSummary) error {
+func WriteSVGs(summary internalmodel.StatsSummary, opts Options) error {
 	if err := os.MkdirAll(generatedDirectory, 0o755); err != nil {
 		slog.Error("create generated directory", "directory", generatedDirectory, "error", err)
 		return fmt.Errorf("create generated directory: %w", err)
@@ -112,7 +121,7 @@ func WriteSVGs(summary internalmodel.StatsSummary) error {
 	if err := writeTemplate(filepath.Join(generatedDirectory, "overview.svg"), overviewTemplatePath, buildOverviewTemplateData(summary.Overview)); err != nil {
 		return err
 	}
-	if err := writeTemplate(filepath.Join(generatedDirectory, "languages.svg"), languagesTemplatePath, buildLanguageTemplateData(summary.Overview.Name, summary.Languages)); err != nil {
+	if err := writeTemplate(filepath.Join(generatedDirectory, "languages.svg"), languagesTemplatePath, buildLanguageTemplateData(summary.Overview.Name, summary.Languages, opts.LanguagesCompression)); err != nil {
 		return err
 	}
 	return writeTemplate(filepath.Join(generatedDirectory, "top_repos.svg"), topReposTemplatePath, buildTopReposTemplateData(summary.Overview.Name, summary.TopRepos))
@@ -152,22 +161,21 @@ func buildOverviewTemplateData(overview internalmodel.OverviewStats) overviewTem
 	}
 }
 
-func buildLanguageTemplateData(name string, languages []internalmodel.LanguageStat) languageTemplateData {
-	// Display percentages use sqrt(bytes) to compress the long-tail dominance
-	// of whichever single language has the largest weighted byte total - "Go
-	// 72%" becomes "Go ~37%", giving smaller-but-still-substantive languages
-	// a visible slice of the rendered bar. The model's untransformed
-	// .Percentage stays unchanged so diagnostics still report the raw
-	// distribution.
-	totalSqrt := 0.0
+func buildLanguageTemplateData(name string, languages []internalmodel.LanguageStat, compression string) languageTemplateData {
+	// Display percentages are compressed before normalization so a single
+	// dominant language does not crowd out smaller-but-still-substantive
+	// ones. The model's untransformed .Percentage stays unchanged so
+	// diagnostics still report the raw distribution.
+	compress := compressionFor(compression)
+	totalCompressed := 0.0
 	for _, language := range languages {
-		totalSqrt += math.Sqrt(language.Weighted)
+		totalCompressed += compress(language.Weighted)
 	}
 	items := make([]languageTemplateItem, 0, len(languages))
 	for index, language := range languages {
 		percentage := 0.0
-		if totalSqrt > 0 {
-			percentage = clampPercentage(100 * math.Sqrt(language.Weighted) / totalSqrt)
+		if totalCompressed > 0 {
+			percentage = clampPercentage(100 * compress(language.Weighted) / totalCompressed)
 		}
 		items = append(items, languageTemplateItem{
 			Name:              strings.TrimSpace(language.Name),
@@ -231,6 +239,40 @@ func buildTopReposTemplateData(name string, repos []internalmodel.RepoActivity) 
 		displayName = topRepositoryNameDefault
 	}
 	return topReposTemplateData{Name: displayName, Repos: rows}
+}
+
+// compressionMode mirrors the LanguagesCompression enum from config but is
+// kept local so the render package does not depend on the config package.
+type compressionMode string
+
+const (
+	compressionLinear compressionMode = "linear"
+	compressionSqrt   compressionMode = "sqrt"
+	compressionLog    compressionMode = "log"
+)
+
+func compressionFor(mode string) func(float64) float64 {
+	parsed := compressionMode(strings.ToLower(strings.TrimSpace(mode)))
+	switch parsed {
+	case compressionLinear:
+		return func(value float64) float64 { return value }
+	case compressionLog:
+		return func(value float64) float64 {
+			if value <= 0 {
+				return 0
+			}
+			return math.Log10(1 + value)
+		}
+	case compressionSqrt:
+		fallthrough
+	default:
+		return func(value float64) float64 {
+			if value <= 0 {
+				return 0
+			}
+			return math.Sqrt(value)
+		}
+	}
 }
 
 func truncateString(value string, maxLen int) string {

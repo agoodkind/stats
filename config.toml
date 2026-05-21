@@ -1,17 +1,67 @@
 [github]
-# token may be omitted when GITHUB_TOKEN or GH_TOKEN is set.
-# actor may be omitted when GITHUB_ACTOR or GH_ACTOR is set.
+# token may be omitted when GH_TOKEN or GITHUB_TOKEN is set.
+# actor may be omitted when GH_ACTOR or GITHUB_ACTOR is set.
 actor = "agoodkind"
-
-[filters]
-excluded_repos = []
-excluded_langs = []
-exclude_forked_repos = true
-include_external = true
-
-[recency]
-half_life = "3y"
-floor = 0.05
 
 [logging]
 level = "INFO"
+
+# Per-commit recency weighting.
+#   weight = max(floor, 0.5 ^ (commit_age / half_life))
+# Drives:
+#   - top-repos score (commit term)
+#   - language byte multiplier (each repo's bytes scaled by avg commit weight)
+[recency]
+# Time it takes a commit to count for half. "3y" / "180d" / "8760h" all work.
+half_life = "3y"
+# Floor every commit weight to this so old commits never go to zero.
+floor = 0.05
+
+# Inclusion rules applied to owned repos before they reach Stars / Forks / "Public
+# repos I own" / language stats / top-repos cards.
+[owned]
+# Drop repos with archivedAt set.
+exclude_archived = true
+# Drop disabled (suspended) repos.
+exclude_disabled = true
+# Drop forks (where you forked someone else's repo).
+exclude_forks = true
+# Drop repos GitHub has no language data for (typically empty repos).
+require_languages = true
+# Drop repos by full nameWithOwner.
+excluded_repos = []
+# Drop language names (case-insensitive) from the languages chart.
+excluded_langs = []
+
+# External repos (committed to but not owned). Their NAMES never appear in any SVG;
+# only aggregate counts and language bytes can.
+[contributed]
+# "all"         - private (SSO-gated) externals count toward "repos I contribute to".
+# "public-only" - drop private externals from the tally.
+include = "all"
+# Fold external commit additions/deletions into the "Lines of code changed" total.
+include_in_loc = true
+# Roll external repos' language bytes into the Languages chart.
+include_in_languages = true
+
+[top_repos]
+# Number of cards rendered in top_repos.svg (the grid is 2 columns wide).
+limit = 6
+# Score = log10(1 + weighted_commits) + star_coefficient * log10(1 + stars).
+# Higher -> star outliers dominate. 1.0 = stars and commits balanced. 2.0 = stars 2x.
+star_coefficient = 2.0
+
+[languages]
+# Compression applied to weighted byte totals before percentages are computed.
+#   "linear" - raw byte ratios. Go ~72% for a Go-heavy account.
+#   "sqrt"   - sqrt(bytes). Go drops to ~37%; smaller langs visible.
+#   "log"    - log10(1+bytes). Most aggressive flattening.
+compression = "sqrt"
+
+# Lifetime repository-view counter shown in the Overview SVG.
+#   displayed = seed + sum of every daily count accumulated in
+#   generated/views_history.json across CI runs.
+[views]
+# Starting offset. Useful for picking up a prior counter (e.g. komarev's badge)
+# without losing history.
+seed = 1152

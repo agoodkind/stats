@@ -125,19 +125,19 @@ foreignObject {
 <div class="card" style="animation-delay: 0ms">
 <div class="name"><span class="pill" style="background-color: #F05138;"></span>macos-smc-fan</div>
 <div class="desc">Research into SMC fan control on Appl…</div>
-<div class="stats">&#9733; 17 &#183; 12d ago</div>
+<div class="stats">&#9733; 17 &#183; 13d ago</div>
 </div>
 
 <div class="card" style="animation-delay: 150ms">
 <div class="name"><span class="pill" style="background-color: #00ADD8;"></span>clyde</div>
 <div class="desc">A power-user companion for Codex and …</div>
-<div class="stats">&#9733; 1 &#183; 2d ago</div>
+<div class="stats">&#9733; 1 &#183; today</div>
 </div>
 
 <div class="card" style="animation-delay: 300ms">
 <div class="name"><span class="pill" style="background-color: #00ADD8;"></span>.dotfiles</div>
 <div class="desc">My dot files wrapped up into a portab…</div>
-<div class="stats">&#9733; 1 &#183; 3d ago</div>
+<div class="stats">&#9733; 1 &#183; today</div>
 </div>
 
 <div class="card" style="animation-delay: 450ms">
@@ -149,13 +149,13 @@ foreignObject {
 <div class="card" style="animation-delay: 600ms">
 <div class="name"><span class="pill" style="background-color: #00ADD8;"></span>goodkind.io</div>
 <div class="desc">My overengineered personal website bu…</div>
-<div class="stats">&#9733; 1 &#183; 4d ago</div>
+<div class="stats">&#9733; 1 &#183; 5d ago</div>
 </div>
 
 <div class="card" style="animation-delay: 750ms">
 <div class="name"><span class="pill" style="background-color: #00ADD8;"></span>agent-gate</div>
 <div class="desc">Unified hook handler for Claude Code …</div>
-<div class="stats">&#9733; 1 &#183; 8d ago</div>
+<div class="stats">&#9733; 1 &#183; 9d ago</div>
 </div>
 
 </div>

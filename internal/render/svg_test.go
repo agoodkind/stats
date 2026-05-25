@@ -117,3 +117,54 @@ func TestWriteSVGsEscapesDangerousContent(t *testing.T) {
 		t.Fatalf("expected dark mode placeholder replacement in languages.svg")
 	}
 }
+
+func TestTopReposHeightScalesWithRows(t *testing.T) {
+	temporaryDirectory := t.TempDir()
+	currentWorkingDirectory, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd returned error: %v", err)
+	}
+	if err := os.Chdir(temporaryDirectory); err != nil {
+		t.Fatalf("Chdir returned error: %v", err)
+	}
+	defer func() {
+		if chdirErr := os.Chdir(currentWorkingDirectory); chdirErr != nil {
+			t.Fatalf("restore working directory: %v", chdirErr)
+		}
+	}()
+
+	repositories := make([]internalmodel.RepoActivity, 0, 6)
+	for index := 0; index < 6; index++ {
+		repositories = append(repositories, internalmodel.RepoActivity{
+			RepositoryName: "agoodkind/repo",
+			Description:    "test repository",
+			LangColor:      "#00ADD8",
+			UpdatedAgo:     "today",
+			Stars:          index,
+		})
+	}
+
+	summary := internalmodel.StatsSummary{
+		Overview: internalmodel.OverviewStats{Name: "Alex Goodkind"},
+		TopRepos: repositories,
+	}
+	if err := WriteSVGs(summary, Options{LanguagesCompression: "sqrt"}); err != nil {
+		t.Fatalf("WriteSVGs returned error: %v", err)
+	}
+
+	topReposSVGBytes, err := os.ReadFile(filepath.Join(generatedDirectory, "top_repos.svg"))
+	if err != nil {
+		t.Fatalf("read top_repos.svg: %v", err)
+	}
+	topReposSVG := string(topReposSVGBytes)
+	for _, expectedValue := range []string{
+		`<svg id="gh-dark-mode-only" width="360" height="314"`,
+		`<foreignObject x="21" y="21" width="318" height="272">`,
+		`box-sizing: border-box;`,
+		`height: 74px;`,
+	} {
+		if !strings.Contains(topReposSVG, expectedValue) {
+			t.Fatalf("expected top_repos.svg to contain %q, got %s", expectedValue, topReposSVG)
+		}
+	}
+}

@@ -46,6 +46,11 @@ const (
 	// rows as the browser will, never fewer.
 	languagesCharPx       = 7
 	languagesMinSVGHeight = 140
+	topReposFrameHeight   = 42
+	topReposTitleHeight   = 34
+	topReposCardHeight    = 74
+	topReposGridGap       = 8
+	topReposMinSVGHeight  = 150
 )
 
 var hexColorPattern = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
@@ -94,8 +99,10 @@ type topRepoView struct {
 }
 
 type topReposTemplateData struct {
-	Name  string
-	Repos []topRepoView
+	Name                string
+	Repos               []topRepoView
+	SVGHeight           int
+	ForeignObjectHeight int
 }
 
 func (topReposTemplateData) svgTemplateMarker() {}
@@ -238,7 +245,25 @@ func buildTopReposTemplateData(name string, repos []internalmodel.RepoActivity) 
 	if displayName == "" {
 		displayName = topRepositoryNameDefault
 	}
-	return topReposTemplateData{Name: displayName, Repos: rows}
+	svgHeight := topReposSVGHeight(len(rows))
+	return topReposTemplateData{
+		Name:                displayName,
+		Repos:               rows,
+		SVGHeight:           svgHeight,
+		ForeignObjectHeight: svgHeight - topReposFrameHeight,
+	}
+}
+
+func topReposSVGHeight(repoCount int) int {
+	if repoCount <= 0 {
+		return topReposMinSVGHeight
+	}
+	rowCount := (repoCount + 1) / 2
+	contentHeight := topReposTitleHeight + rowCount*topReposCardHeight
+	if rowCount > 1 {
+		contentHeight += (rowCount - 1) * topReposGridGap
+	}
+	return max(topReposFrameHeight+contentHeight, topReposMinSVGHeight)
 }
 
 // compressionMode mirrors the LanguagesCompression enum from config but is

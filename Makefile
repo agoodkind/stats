@@ -39,6 +39,8 @@ $(GO_MK):
 
 .PHONY: generate
 
+check: lint test
+
 generate:
 	go run $(CMD) generate
 

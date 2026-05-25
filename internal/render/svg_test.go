@@ -1,6 +1,7 @@
 package render
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -165,6 +166,90 @@ func TestTopReposHeightScalesWithRows(t *testing.T) {
 	} {
 		if !strings.Contains(topReposSVG, expectedValue) {
 			t.Fatalf("expected top_repos.svg to contain %q, got %s", expectedValue, topReposSVG)
+		}
+	}
+}
+
+func TestLanguagesHeightScalesWithWrappedRows(t *testing.T) {
+	temporaryDirectory := t.TempDir()
+	currentWorkingDirectory, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Getwd returned error: %v", err)
+	}
+	if err := os.Chdir(temporaryDirectory); err != nil {
+		t.Fatalf("Chdir returned error: %v", err)
+	}
+	defer func() {
+		if chdirErr := os.Chdir(currentWorkingDirectory); chdirErr != nil {
+			t.Fatalf("restore working directory: %v", chdirErr)
+		}
+	}()
+
+	languages := []internalmodel.LanguageStat{
+		{Name: "Go", Color: "#00ADD8", Weighted: 100},
+		{Name: "TypeScript", Color: "#3178C6", Weighted: 90},
+		{Name: "JavaScript", Color: "#F1E05A", Weighted: 80},
+		{Name: "Go Template", Color: "#00ADD8", Weighted: 70},
+		{Name: "Objective-C", Color: "#438EFF", Weighted: 60},
+		{Name: "Shell", Color: "#89E051", Weighted: 50},
+		{Name: "Makefile", Color: "#427819", Weighted: 40},
+		{Name: "Python", Color: "#3572A5", Weighted: 30},
+		{Name: "Assembly", Color: "#6E4C13", Weighted: 20},
+		{Name: "Swift", Color: "#F05138", Weighted: 10},
+	}
+	expectedTemplateData := buildLanguageTemplateData("Alex Goodkind", languages, "sqrt")
+	if expectedTemplateData.SVGHeight <= languagesMinSVGHeight {
+		t.Fatalf("expected wrapped languages to exceed min height, got %d", expectedTemplateData.SVGHeight)
+	}
+
+	summary := internalmodel.StatsSummary{
+		Overview:  internalmodel.OverviewStats{Name: "Alex Goodkind"},
+		Languages: languages,
+	}
+	if err := WriteSVGs(summary, Options{LanguagesCompression: "sqrt"}); err != nil {
+		t.Fatalf("WriteSVGs returned error: %v", err)
+	}
+
+	languagesSVGBytes, err := os.ReadFile(filepath.Join(generatedDirectory, "languages.svg"))
+	if err != nil {
+		t.Fatalf("read languages.svg: %v", err)
+	}
+	languagesSVG := string(languagesSVGBytes)
+	for _, expectedValue := range []string{
+		fmt.Sprintf(`<svg id="gh-dark-mode-only" width="360" height="%d"`, expectedTemplateData.SVGHeight),
+		fmt.Sprintf(`<foreignObject x="21" y="17" width="318" height="%d">`, expectedTemplateData.ForeignObjectHeight),
+		`Go Template`,
+		`Objective-C`,
+		`Assembly`,
+	} {
+		if !strings.Contains(languagesSVG, expectedValue) {
+			t.Fatalf("expected languages.svg to contain %q, got %s", expectedValue, languagesSVG)
+		}
+	}
+}
+
+func TestRenderTemplatesHaveSingleSourceOfTruth(t *testing.T) {
+	for _, templatePath := range []string{
+		filepath.Join("templates", "overview.svg.tmpl"),
+		filepath.Join("templates", "languages.svg.tmpl"),
+		filepath.Join("templates", "top_repos.svg.tmpl"),
+	} {
+		if _, err := os.Stat(templatePath); err != nil {
+			t.Fatalf("expected embedded template %q to exist: %v", templatePath, err)
+		}
+	}
+
+	rootTemplatesPath := filepath.Join("..", "..", "templates")
+	rootTemplateEntries, err := os.ReadDir(rootTemplatesPath)
+	if os.IsNotExist(err) {
+		return
+	}
+	if err != nil {
+		t.Fatalf("read root templates directory %q: %v", rootTemplatesPath, err)
+	}
+	for _, entry := range rootTemplateEntries {
+		if strings.HasSuffix(entry.Name(), ".svg.tmpl") {
+			t.Fatalf("unexpected root template %q; render embeds internal/render/templates", filepath.Join(rootTemplatesPath, entry.Name()))
 		}
 	}
 }

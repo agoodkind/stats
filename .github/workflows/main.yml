@@ -39,7 +39,6 @@ jobs:
         run: make generate
 
       - name: Commit generated SVGs
-        id: generated
         run: |
           set -x
           git -C "$GITHUB_WORKSPACE" config --global user.name "agoodkind-gh-bot"
@@ -48,38 +47,8 @@ jobs:
           git -C "$GITHUB_WORKSPACE" add generated
           if git -C "$GITHUB_WORKSPACE" diff --cached --quiet; then
             echo "no SVG changes to commit"
-            echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           git -C "$GITHUB_WORKSPACE" diff --cached --stat
           git -C "$GITHUB_WORKSPACE" commit -m "Update generated SVGs"
           git -C "$GITHUB_WORKSPACE" push origin HEAD:master
-          echo "changed=true" >> "$GITHUB_OUTPUT"
-
-      - name: Checkout profile repository
-        if: steps.generated.outputs.changed == 'true'
-        uses: actions/checkout@v6
-        with:
-          repository: agoodkind/agoodkind
-          token: ${{ secrets.ACCESS_TOKEN }}
-          path: profile
-
-      - name: Update profile README stats image cache keys
-        if: steps.generated.outputs.changed == 'true'
-        run: go run ./cmd/stats-gh-readme-cache -cache "${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-
-      - name: Commit profile README cache keys
-        if: steps.generated.outputs.changed == 'true'
-        run: |
-          set -x
-          git -C "$GITHUB_WORKSPACE/profile" config user.name "agoodkind-gh-bot"
-          git -C "$GITHUB_WORKSPACE/profile" config user.email "gh-bots@goodkind.io"
-          git -C "$GITHUB_WORKSPACE/profile" status --short README.md
-          git -C "$GITHUB_WORKSPACE/profile" add README.md
-          if git -C "$GITHUB_WORKSPACE/profile" diff --cached --quiet; then
-            echo "no profile README changes to commit"
-            exit 0
-          fi
-          git -C "$GITHUB_WORKSPACE/profile" diff --cached --stat
-          git -C "$GITHUB_WORKSPACE/profile" commit -m "Update stats image cache keys"
-          git -C "$GITHUB_WORKSPACE/profile" push origin HEAD:main

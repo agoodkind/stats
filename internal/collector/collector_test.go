@@ -52,6 +52,11 @@ type fakeGitHubService struct {
 	externalEstimates    []internalmodel.ExternalContributionEstimate
 }
 
+type fakeProfileCounterService struct {
+	views int
+	err   error
+}
+
 func (service fakeGitHubService) FetchViewerRepositories(context.Context) (internalmodel.ViewerSummary, []internalmodel.Repository, []internalmodel.Repository, error) {
 	return service.viewer, cloneRepositories(service.ownedRepositories), cloneRepositories(service.externalRepositories), nil
 }
@@ -77,6 +82,13 @@ func (service fakeGitHubService) EstimateExternalContributions(context.Context, 
 	return cloneExternalEstimates(service.externalEstimates), nil
 }
 
+func (service fakeProfileCounterService) FetchProfileViews(context.Context, string) (int, error) {
+	if service.err != nil {
+		return 0, service.err
+	}
+	return service.views, nil
+}
+
 func TestCollectFixtureSDKRegression(t *testing.T) {
 	fixture := loadCollectorFixture(t)
 	cfg := fixture.Config.toConfig()
@@ -95,6 +107,7 @@ func TestCollectFixtureSDKRegression(t *testing.T) {
 	collector.now = func() time.Time {
 		return fixture.Now
 	}
+	collector.profileCounter = fakeProfileCounterService{}
 	collector.viewsHistoryPath = filepath.Join(t.TempDir(), "views_history.json")
 
 	summary, err := collector.Collect(context.Background(), cfg)
@@ -138,6 +151,7 @@ func TestFormatDiagnosticsDeterministic(t *testing.T) {
 	collector.now = func() time.Time {
 		return fixture.Now
 	}
+	collector.profileCounter = fakeProfileCounterService{}
 	collector.viewsHistoryPath = filepath.Join(t.TempDir(), "views_history.json")
 
 	summary, err := collector.Collect(context.Background(), cfg)
@@ -149,6 +163,80 @@ func TestFormatDiagnosticsDeterministic(t *testing.T) {
 	second := FormatDiagnostics(summary.Diagnostics)
 	if first != second {
 		t.Fatalf("expected deterministic diagnostics output")
+	}
+}
+
+func TestCollectUsesProfileCounterAsViewSource(t *testing.T) {
+	cfg := internalconfig.Config{
+		GitHubActor:               "agoodkind",
+		ExcludedRepos:             map[string]struct{}{},
+		ExcludedLangs:             map[string]struct{}{},
+		ExcludeArchived:           true,
+		ExcludeDisabled:           true,
+		ExcludeForks:              true,
+		RequireLanguages:          true,
+		ContributedInclude:        internalconfig.ContributedAll,
+		ContributedIncludeInLOC:   true,
+		ContributedIncludeInLangs: false,
+		TopReposLimit:             6,
+		TopReposStarCoefficient:   2.0,
+		LanguagesCompression:      internalconfig.LanguagesSqrt,
+		RecencyHalfLife:           3 * 365 * 24 * time.Hour,
+		RecencyFloor:              0.05,
+	}
+	service := fakeGitHubService{
+		viewer: internalmodel.ViewerSummary{
+			Login: "agoodkind",
+			Name:  "Alex Goodkind",
+		},
+		ownedRepositories: []internalmodel.Repository{
+			{
+				NameWithOwner: "agoodkind/stats",
+				Stars:         1,
+				Languages: []internalmodel.RepositoryLanguage{
+					{Name: "Go", Color: "#00ADD8", Bytes: 100},
+				},
+			},
+		},
+		contributionCount: 1,
+		views:             7,
+	}
+	historyPath := filepath.Join(t.TempDir(), "views_history.json")
+	historyJSON := `{
+  "seed": 1152,
+  "repos": {
+    "agoodkind/old": {
+      "2026-05-23": 3
+    }
+  }
+}
+`
+	if err := os.WriteFile(historyPath, []byte(historyJSON), 0o600); err != nil {
+		t.Fatalf("write history fixture: %v", err)
+	}
+
+	collector := New(service)
+	collector.profileCounter = fakeProfileCounterService{views: 1159}
+	collector.viewsHistoryPath = historyPath
+
+	summary, err := collector.Collect(context.Background(), cfg)
+	if err != nil {
+		t.Fatalf("Collect returned error: %v", err)
+	}
+	if summary.Overview.Views != 1169 {
+		t.Fatalf("expected profile counter plus persisted repo views 1169, got %d", summary.Overview.Views)
+	}
+
+	savedBytes, err := os.ReadFile(historyPath)
+	if err != nil {
+		t.Fatalf("read saved history: %v", err)
+	}
+	savedHistory := string(savedBytes)
+	if !strings.Contains(savedHistory, `"counter": 1159`) {
+		t.Fatalf("expected profile counter to be saved, got %s", savedHistory)
+	}
+	if strings.Contains(savedHistory, `"seed"`) {
+		t.Fatalf("expected legacy seed to be removed, got %s", savedHistory)
 	}
 }
 

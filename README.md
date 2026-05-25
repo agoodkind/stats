@@ -16,10 +16,10 @@ https://github.community/t/support-theme-context-for-images-in-light-vs-dark-mod
 
 | File | Contents |
 | ---- | -------- |
-| `generated/overview.svg` | Header card with totals: Stars, Forks, All-time contributions, Lines of code changed, lifetime Repository views, public repos you own, open-source repos you contribute to. |
+| `generated/overview.svg` | Header card with totals: Stars, Forks, All-time contributions, Lines of code changed, profile and repository views, public repos you own, open-source repos you contribute to. |
 | `generated/languages.svg` | Language breakdown across your active owned repos (optionally folded in with externals). Percentages are compressed so a single dominant language doesn't crowd out the rest. |
 | `generated/top_repos.svg` | 2-column card grid of your top repos. Each card shows the name, primary-language dot, description, star count, and last-pushed-ago. |
-| `generated/views_history.json` | Persisted per-repo daily traffic counts; the bot commits this alongside the SVGs so the Repository-views number accumulates across runs (the API only exposes the rolling 14-day window). |
+| `generated/views_history.json` | Persisted profile-view counter plus per-repo daily traffic counts; the bot commits this alongside the SVGs so the views number accumulates across runs. |
 | `diagnose` subcommand stdout | One line per repository with the inclusion reason and recency weight. Not committed; for debugging. |
 
 ## Configuration knobs
@@ -86,13 +86,9 @@ The card grid.
 | --- | --- | --- |
 | `compression` | `"sqrt"` | Curve applied to weighted byte totals before percentages are computed. `"linear"` shows raw ratios (one dominant language stays dominant). `"sqrt"` makes smaller languages visible. `"log"` is the most aggressive flattening. |
 
-### `[views]`
+### Views Counter
 
-The Repository-views number on the Overview is `seed + every daily count ever fetched`. GitHub's traffic API only exposes the trailing 14 days, so the bot persists daily counts in `generated/views_history.json` each run.
-
-| Key | Default | Effect |
-| --- | --- | --- |
-| `seed` | `0` | Starting offset, useful for picking up a prior counter (e.g. komarev's badge value) so the displayed number doesn't reset to zero. Edits to this value override the seed in the on-disk history file on the next run. |
+The views number on the Overview is the current Komarev profile-view badge count plus every repository traffic daily count persisted in `generated/views_history.json`. GitHub's traffic API only exposes the trailing 14 days, so the bot still commits the history file after each run.
 
 ### Full example
 
@@ -126,9 +122,6 @@ star_coefficient = 2.0
 
 [languages]
 compression = "sqrt"
-
-[views]
-seed = 1152
 ```
 
 ## Commands

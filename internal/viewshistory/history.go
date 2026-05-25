@@ -14,12 +14,11 @@ import (
 )
 
 // History is repo full-name -> ISO date string (YYYY-MM-DD) -> view count,
-// plus a one-time Seed offset folded into the total so the displayed view
-// count can pick up a baseline from a prior external counter (e.g. the
-// profile-README komarev badge) instead of starting at zero.
+// plus the current profile-view counter value from the profile README badge.
 type History struct {
-	Seed  int                       `json:"seed"`
-	Repos map[string]map[string]int `json:"repos"`
+	Counter int                       `json:"counter"`
+	Seed    int                       `json:"seed,omitempty"`
+	Repos   map[string]map[string]int `json:"repos"`
 }
 
 // Load reads a History from path. If the file does not exist an empty
@@ -41,6 +40,10 @@ func Load(path string) (History, error) {
 	if history.Repos == nil {
 		history.Repos = map[string]map[string]int{}
 	}
+	if history.Counter == 0 && history.Seed > 0 {
+		history.Counter = history.Seed
+	}
+	history.Seed = 0
 	return history, nil
 }
 
@@ -50,6 +53,7 @@ func Save(path string, history History) error {
 	if history.Repos == nil {
 		history.Repos = map[string]map[string]int{}
 	}
+	history.Seed = 0
 	encoded, err := json.MarshalIndent(history, "", "  ")
 	if err != nil {
 		slog.Error("encode views history", "path", path, "error", err)
@@ -81,10 +85,10 @@ func Merge(history History, fresh map[string]map[string]int) History {
 	return history
 }
 
-// Total sums the seed offset plus every recorded count across every repo
+// Total sums the profile counter plus every recorded count across every repo
 // and date.
 func Total(history History) int {
-	total := history.Seed
+	total := history.Counter
 	for _, days := range history.Repos {
 		for _, count := range days {
 			total += count

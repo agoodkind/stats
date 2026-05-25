@@ -85,9 +85,6 @@ type Config struct {
 
 	// Languages chart.
 	LanguagesCompression LanguagesCompression
-
-	// Lifetime views counter seed.
-	ViewsSeed int
 }
 
 type fileConfig struct {
@@ -98,7 +95,6 @@ type fileConfig struct {
 	Contributed contributedConfig `toml:"contributed"`
 	TopRepos    topReposConfig    `toml:"top_repos"`
 	Languages   languagesConfig   `toml:"languages"`
-	Views       viewsConfig       `toml:"views"`
 }
 
 type githubConfig struct {
@@ -137,10 +133,6 @@ type topReposConfig struct {
 
 type languagesConfig struct {
 	Compression string `toml:"compression"`
-}
-
-type viewsConfig struct {
-	Seed *int `toml:"seed"`
 }
 
 // DefaultPath returns the default config file path used when no -config flag is supplied.
@@ -187,7 +179,6 @@ func LoadFromPath(path string) (Config, error) {
 		TopReposLimit:             intOrDefault(rawConfig.TopRepos.Limit, defaultTopReposLimit),
 		TopReposStarCoefficient:   floatOrDefault(rawConfig.TopRepos.StarCoefficient, defaultStarCoefficient),
 		LanguagesCompression:      LanguagesSqrt,
-		ViewsSeed:                 intOrDefault(rawConfig.Views.Seed, 0),
 	}
 
 	if cfg.GitHubToken == "" {

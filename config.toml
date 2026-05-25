@@ -57,11 +57,3 @@ star_coefficient = 2.0
 #   "sqrt"   - sqrt(bytes). Go drops to ~37%; smaller langs visible.
 #   "log"    - log10(1+bytes). Most aggressive flattening.
 compression = "sqrt"
-
-# Lifetime repository-view counter shown in the Overview SVG.
-#   displayed = seed + sum of every daily count accumulated in
-#   generated/views_history.json across CI runs.
-[views]
-# Starting offset. Useful for picking up a prior counter (e.g. komarev's badge)
-# without losing history.
-seed = 1152

@@ -61,9 +61,7 @@ func TestLoadFromPath(t *testing.T) {
 		"limit = 9\n" +
 		"star_coefficient = 3.5\n\n" +
 		"[languages]\n" +
-		"compression = \"log\"\n\n" +
-		"[views]\n" +
-		"seed = 42\n"
+		"compression = \"log\"\n"
 
 	if err := os.WriteFile(configPath, []byte(configContents), 0o600); err != nil {
 		t.Fatalf("write config file: %v", err)
@@ -124,9 +122,6 @@ func TestLoadFromPath(t *testing.T) {
 	}
 	if cfg.LanguagesCompression != LanguagesLog {
 		t.Fatalf("expected LanguagesLog, got %q", cfg.LanguagesCompression)
-	}
-	if cfg.ViewsSeed != 42 {
-		t.Fatalf("expected ViewsSeed 42, got %d", cfg.ViewsSeed)
 	}
 }
 

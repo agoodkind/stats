@@ -15,6 +15,7 @@ import (
 
 	internalconfig "github.com/agoodkind/stats/internal/config"
 	internalmodel "github.com/agoodkind/stats/internal/model"
+	internalprofilecounter "github.com/agoodkind/stats/internal/profilecounter"
 	internalviewshistory "github.com/agoodkind/stats/internal/viewshistory"
 )
 
@@ -28,6 +29,10 @@ type githubService interface {
 	EstimateExternalContributions(ctx context.Context, repositories []internalmodel.Repository) ([]internalmodel.ExternalContributionEstimate, error)
 }
 
+type profileCounterService interface {
+	FetchProfileViews(ctx context.Context, actor string) (int, error)
+}
+
 // ViewsHistoryPath is the location under generated/ where lifetime view
 // counts accumulate across CI runs. The bot commits this alongside the
 // SVGs so each subsequent run can merge the freshest 14-day window into
@@ -38,6 +43,7 @@ const ViewsHistoryPath = "generated/views_history.json"
 // produce a StatsSummary.
 type Collector struct {
 	client           githubService
+	profileCounter   profileCounterService
 	now              func() time.Time
 	viewsHistoryPath string
 }
@@ -53,13 +59,19 @@ type languageAccumulator struct {
 // for recency calculations and the default ViewsHistoryPath for accumulated
 // repo views.
 func New(client githubService) *Collector {
-	return &Collector{client: client, now: time.Now, viewsHistoryPath: ViewsHistoryPath}
+	return &Collector{
+		client:           client,
+		profileCounter:   internalprofilecounter.New(),
+		now:              time.Now,
+		viewsHistoryPath: ViewsHistoryPath,
+	}
 }
 
-// accumulateViews loads the on-disk views history, merges in the fresh
-// 14-day window, applies the config's seed override, persists the result,
-// and returns the displayed lifetime total. Returns 0 with no error when
-// viewsHistoryPath is empty (tests).
+// accumulateViews loads the on-disk views history, refreshes the profile
+// counter from the historical profile README badge, merges in the fresh
+// 14-day repository window, persists the result, and returns the displayed
+// lifetime total. Returns 0 with no error when viewsHistoryPath is empty
+// (tests).
 func (collector *Collector) accumulateViews(ctx context.Context, cfg internalconfig.Config, freshViews map[string]map[string]int) (int, error) {
 	if collector.viewsHistoryPath == "" {
 		return 0, nil
@@ -69,11 +81,17 @@ func (collector *Collector) accumulateViews(ctx context.Context, cfg internalcon
 		slog.ErrorContext(ctx, "load views history", "path", collector.viewsHistoryPath, "error", err)
 		return 0, fmt.Errorf("load views history: %w", err)
 	}
-	// config.toml's views.seed is the source of truth so the user can
-	// adjust the baseline by editing the config; it overrides whatever
-	// value happens to be in the on-disk history.
-	if cfg.ViewsSeed > 0 {
-		viewsHistory.Seed = cfg.ViewsSeed
+	if collector.profileCounter != nil {
+		profileViews, err := collector.profileCounter.FetchProfileViews(ctx, cfg.GitHubActor)
+		if err != nil {
+			if viewsHistory.Counter <= 0 {
+				return 0, fmt.Errorf("fetch profile counter: %w", err)
+			}
+			slog.WarnContext(ctx, "use stored profile counter", "counter", viewsHistory.Counter, "error", err)
+		} else {
+			viewsHistory.Counter = profileViews
+			slog.InfoContext(ctx, "profile counter summary", "counter", profileViews)
+		}
 	}
 	viewsHistory = internalviewshistory.Merge(viewsHistory, freshViews)
 	if err := internalviewshistory.Save(collector.viewsHistoryPath, viewsHistory); err != nil {

@@ -126,7 +126,7 @@ foreignObject {
 <div class="card" style="animation-delay: 0ms">
 <div class="name"><span class="pill" style="background-color: #F05138;"></span>macos-smc-fan</div>
 <div class="desc">Research into SMC fan control on Appl…</div>
-<div class="stats">&#9733; 18 &#183; 3d ago</div>
+<div class="stats">&#9733; 18 &#183; 4d ago</div>
 </div>
 
 <div class="card" style="animation-delay: 150ms">
@@ -148,15 +148,15 @@ foreignObject {
 </div>
 
 <div class="card" style="animation-delay: 600ms">
-<div class="name"><span class="pill" style="background-color: #00ADD8;"></span>goodkind.io</div>
-<div class="desc">My overengineered personal website bu…</div>
-<div class="stats">&#9733; 1 &#183; 3d ago</div>
-</div>
-
-<div class="card" style="animation-delay: 750ms">
 <div class="name"><span class="pill" style="background-color: #F05138;"></span>macos-fan-curve</div>
 <div class="desc">Native macOS fan curve editor for App…</div>
 <div class="stats">&#9733; 1 &#183; today</div>
+</div>
+
+<div class="card" style="animation-delay: 750ms">
+<div class="name"><span class="pill" style="background-color: #00ADD8;"></span>goodkind.io</div>
+<div class="desc">My overengineered personal website bu…</div>
+<div class="stats">&#9733; 1 &#183; 4d ago</div>
 </div>
 
 </div>

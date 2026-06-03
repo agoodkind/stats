@@ -1,6 +1,6 @@
 module github.com/agoodkind/stats
 
-go 1.26.3
+go 1.26.4
 
 require (
 	github.com/google/go-github/v81 v81.0.0

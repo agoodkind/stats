@@ -162,6 +162,7 @@ func TestLoadFromPathDefaults(t *testing.T) {
 }
 
 func TestLoadFromPathUsesEnvironmentFallbacks(t *testing.T) {
+	t.Setenv("GH_TOKEN", "")
 	t.Setenv("GITHUB_TOKEN", "environment-token")
 	t.Setenv("GITHUB_ACTOR", "environment-actor")
 
@@ -187,6 +188,7 @@ func TestLoadFromPathUsesEnvironmentFallbacks(t *testing.T) {
 }
 
 func TestLoadFromPathPrefersFileValuesOverEnvironment(t *testing.T) {
+	t.Setenv("GH_TOKEN", "")
 	t.Setenv("GITHUB_TOKEN", "environment-token")
 	t.Setenv("GITHUB_ACTOR", "environment-actor")
 
@@ -214,6 +216,8 @@ func TestLoadFromPathPrefersFileValuesOverEnvironment(t *testing.T) {
 }
 
 func TestLoadFromPathRequiresToken(t *testing.T) {
+	t.Setenv("GH_TOKEN", "")
+	t.Setenv("GITHUB_TOKEN", "")
 	tempDir := t.TempDir()
 	configPath := filepath.Join(tempDir, "config.toml")
 	configContents := "[github]\nactor = \"agoodkind\"\n"

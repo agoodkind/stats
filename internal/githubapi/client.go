@@ -15,7 +15,7 @@ import (
 	"time"
 
 	internalconfig "github.com/agoodkind/stats/internal/config"
-	github "github.com/google/go-github/v81/github"
+	github "github.com/google/go-github/v93/github"
 	"golang.org/x/oauth2"
 )
 
@@ -49,7 +49,7 @@ type rateLimitedTransport struct {
 
 // NewClient returns a Client configured from the given Config, using OAuth2
 // bearer authentication on every outbound HTTP request.
-func NewClient(cfg internalconfig.Config) *Client {
+func NewClient(cfg internalconfig.Config) (*Client, error) {
 	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: cfg.GitHubToken})
 	httpClient := &http.Client{
 		Timeout: defaultRequestTimeout,
@@ -61,11 +61,17 @@ func NewClient(cfg internalconfig.Config) *Client {
 		},
 	}
 
+	restClient, err := github.NewClient(github.WithHTTPClient(httpClient))
+	if err != nil {
+		slog.Error("create github rest client", "error", err)
+		return nil, fmt.Errorf("create github rest client: %w", err)
+	}
+
 	return &Client{
 		httpClient: httpClient,
-		rest:       github.NewClient(httpClient),
+		rest:       restClient,
 		actor:      cfg.GitHubActor,
-	}
+	}, nil
 }
 
 func (client *Client) doGraphQL(ctx context.Context, query string, variables json.RawMessage) (graphQLEnvelope, error) {

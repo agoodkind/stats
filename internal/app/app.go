@@ -57,7 +57,12 @@ func Run(ctx context.Context, cfg internalconfig.Config, args []string) error {
 
 func runGenerate(ctx context.Context, cfg internalconfig.Config) error {
 	logger := internallogging.LoggerFromContext(ctx)
-	collector := internalcollector.New(internalgithubapi.NewClient(cfg))
+	client, err := internalgithubapi.NewClient(cfg)
+	if err != nil {
+		logger.ErrorContext(ctx, "create github client", "error", err)
+		return fmt.Errorf("create github client: %w", err)
+	}
+	collector := internalcollector.New(client)
 	summary, err := collector.Collect(ctx, cfg)
 	if err != nil {
 		logger.ErrorContext(ctx, "collect stats", "error", err)
@@ -76,7 +81,12 @@ func runGenerate(ctx context.Context, cfg internalconfig.Config) error {
 
 func runDiagnose(ctx context.Context, cfg internalconfig.Config) error {
 	logger := internallogging.LoggerFromContext(ctx)
-	collector := internalcollector.New(internalgithubapi.NewClient(cfg))
+	client, err := internalgithubapi.NewClient(cfg)
+	if err != nil {
+		logger.ErrorContext(ctx, "create github client", "error", err)
+		return fmt.Errorf("create github client: %w", err)
+	}
+	collector := internalcollector.New(client)
 	summary, err := collector.Collect(ctx, cfg)
 	if err != nil {
 		logger.ErrorContext(ctx, "collect stats for diagnose", "error", err)

@@ -2,6 +2,8 @@ module github.com/agoodkind/stats
 
 go 1.26.5
 
+toolchain go1.27.3
+
 require (
 	github.com/google/go-github/v93 v93.0.0
 	github.com/pelletier/go-toml/v2 v2.4.3

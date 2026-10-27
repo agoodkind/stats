@@ -1,37 +1,18 @@
-package config
+package config_test
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
+
+	"github.com/agoodkind/stats/internal/config"
 )
 
 func TestDefaultPath(t *testing.T) {
-	if DefaultPath() != "config.toml" {
-		t.Fatalf("expected config.toml, got %q", DefaultPath())
-	}
-}
-
-func TestStringSetLowercase(t *testing.T) {
-	values := stringSet([]string{"Java", " CSharp "}, true)
-
-	if _, ok := values["java"]; !ok {
-		t.Fatalf("expected java to be present")
-	}
-	if _, ok := values["csharp"]; !ok {
-		t.Fatalf("expected csharp to be present")
-	}
-}
-
-func TestParseHalfLifeYears(t *testing.T) {
-	duration, err := parseHalfLife("3y")
-	if err != nil {
-		t.Fatalf("parseHalfLife returned error: %v", err)
-	}
-
-	if duration != 3*365*24*time.Hour {
-		t.Fatalf("expected three years, got %s", duration)
+	if config.DefaultPath() != "config.toml" {
+		t.Fatalf("expected config.toml, got %q", config.DefaultPath())
 	}
 }
 
@@ -51,8 +32,8 @@ func TestLoadFromPath(t *testing.T) {
 		"exclude_disabled = false\n" +
 		"exclude_forks = true\n" +
 		"require_languages = false\n" +
-		"excluded_repos = [\"owner/one\", \"owner/two\"]\n" +
-		"excluded_langs = [\"Java\", \"CSharp\"]\n\n" +
+		"excluded_repos = [\" owner/one \", \"owner/two\", \" \"]\n" +
+		"excluded_langs = [\"Java\", \" CSharp \", \" \"]\n\n" +
 		"[contributed]\n" +
 		"include = \"public-only\"\n" +
 		"include_in_loc = false\n" +
@@ -67,7 +48,7 @@ func TestLoadFromPath(t *testing.T) {
 		t.Fatalf("write config file: %v", err)
 	}
 
-	cfg, err := LoadFromPath(configPath)
+	cfg, err := config.LoadFromPath(configPath)
 	if err != nil {
 		t.Fatalf("LoadFromPath returned error: %v", err)
 	}
@@ -102,10 +83,19 @@ func TestLoadFromPath(t *testing.T) {
 	if _, ok := cfg.ExcludedRepos["owner/one"]; !ok {
 		t.Fatalf("expected owner/one to be present")
 	}
+	if len(cfg.ExcludedRepos) != 2 {
+		t.Fatalf("excluded repositories = %v, want two trimmed names", cfg.ExcludedRepos)
+	}
 	if _, ok := cfg.ExcludedLangs["java"]; !ok {
 		t.Fatalf("expected java to be present")
 	}
-	if cfg.ContributedInclude != ContributedPublicOnly {
+	if _, ok := cfg.ExcludedLangs["csharp"]; !ok {
+		t.Fatalf("expected trimmed lowercase csharp to be present")
+	}
+	if len(cfg.ExcludedLangs) != 2 {
+		t.Fatalf("excluded languages = %v, want two trimmed lowercase names", cfg.ExcludedLangs)
+	}
+	if cfg.ContributedInclude != config.ContributedPublicOnly {
 		t.Fatalf("expected ContributedPublicOnly, got %q", cfg.ContributedInclude)
 	}
 	if cfg.ContributedIncludeInLOC {
@@ -120,7 +110,7 @@ func TestLoadFromPath(t *testing.T) {
 	if cfg.TopReposStarCoefficient != 3.5 {
 		t.Fatalf("expected TopReposStarCoefficient 3.5, got %f", cfg.TopReposStarCoefficient)
 	}
-	if cfg.LanguagesCompression != LanguagesLog {
+	if cfg.LanguagesCompression != config.LanguagesLog {
 		t.Fatalf("expected LanguagesLog, got %q", cfg.LanguagesCompression)
 	}
 }
@@ -136,7 +126,7 @@ func TestLoadFromPathDefaults(t *testing.T) {
 		t.Fatalf("write config file: %v", err)
 	}
 
-	cfg, err := LoadFromPath(configPath)
+	cfg, err := config.LoadFromPath(configPath)
 	if err != nil {
 		t.Fatalf("LoadFromPath returned error: %v", err)
 	}
@@ -144,7 +134,7 @@ func TestLoadFromPathDefaults(t *testing.T) {
 	if !cfg.ExcludeArchived || !cfg.ExcludeDisabled || !cfg.ExcludeForks || !cfg.RequireLanguages {
 		t.Fatalf("expected all owned-exclusion flags to default true: %+v", cfg)
 	}
-	if cfg.ContributedInclude != ContributedAll {
+	if cfg.ContributedInclude != config.ContributedAll {
 		t.Fatalf("expected ContributedAll default, got %q", cfg.ContributedInclude)
 	}
 	if !cfg.ContributedIncludeInLOC || !cfg.ContributedIncludeInLangs {
@@ -156,13 +146,14 @@ func TestLoadFromPathDefaults(t *testing.T) {
 	if cfg.TopReposStarCoefficient != 2.0 {
 		t.Fatalf("expected TopReposStarCoefficient 2.0 default, got %f", cfg.TopReposStarCoefficient)
 	}
-	if cfg.LanguagesCompression != LanguagesSqrt {
+	if cfg.LanguagesCompression != config.LanguagesSqrt {
 		t.Fatalf("expected LanguagesSqrt default, got %q", cfg.LanguagesCompression)
 	}
 }
 
 func TestLoadFromPathUsesEnvironmentFallbacks(t *testing.T) {
 	t.Setenv("GH_TOKEN", "")
+	t.Setenv("GH_ACTOR", "")
 	t.Setenv("GITHUB_TOKEN", "environment-token")
 	t.Setenv("GITHUB_ACTOR", "environment-actor")
 
@@ -174,7 +165,7 @@ func TestLoadFromPathUsesEnvironmentFallbacks(t *testing.T) {
 		t.Fatalf("write config file: %v", err)
 	}
 
-	cfg, err := LoadFromPath(configPath)
+	cfg, err := config.LoadFromPath(configPath)
 	if err != nil {
 		t.Fatalf("LoadFromPath returned error: %v", err)
 	}
@@ -189,6 +180,7 @@ func TestLoadFromPathUsesEnvironmentFallbacks(t *testing.T) {
 
 func TestLoadFromPathPrefersFileValuesOverEnvironment(t *testing.T) {
 	t.Setenv("GH_TOKEN", "")
+	t.Setenv("GH_ACTOR", "")
 	t.Setenv("GITHUB_TOKEN", "environment-token")
 	t.Setenv("GITHUB_ACTOR", "environment-actor")
 
@@ -202,7 +194,7 @@ func TestLoadFromPathPrefersFileValuesOverEnvironment(t *testing.T) {
 		t.Fatalf("write config file: %v", err)
 	}
 
-	cfg, err := LoadFromPath(configPath)
+	cfg, err := config.LoadFromPath(configPath)
 	if err != nil {
 		t.Fatalf("LoadFromPath returned error: %v", err)
 	}
@@ -226,8 +218,12 @@ func TestLoadFromPathRequiresToken(t *testing.T) {
 		t.Fatalf("write config file: %v", err)
 	}
 
-	_, err := LoadFromPath(configPath)
-	if err == nil {
-		t.Fatalf("expected missing token error")
+	cfg, err := config.LoadFromPath(configPath)
+	expectedError := fmt.Sprintf("config file %q is missing github.token", configPath)
+	if err == nil || err.Error() != expectedError {
+		t.Fatalf("missing-token error = %v, want %q", err, expectedError)
+	}
+	if cfg.GitHubToken != "" || cfg.GitHubActor != "" || cfg.Path != "" {
+		t.Fatal("missing-token configuration must not expose a token, actor, or path")
 	}
 }

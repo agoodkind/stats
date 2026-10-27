@@ -1,8 +1,10 @@
-package readmecache
+package readmecache_test
 
 import (
 	"strings"
 	"testing"
+
+	"github.com/agoodkind/stats/internal/readmecache"
 )
 
 func TestUpdateAddsCacheKeyAndPreservesFragments(t *testing.T) {
@@ -12,7 +14,7 @@ func TestUpdateAddsCacheKeyAndPreservesFragments(t *testing.T) {
 		`<img src="https://raw.githubusercontent.com/agoodkind/stats/master/generated/top_repos.svg?cache=old#gh-dark-mode-only" />`,
 	}, "\n")
 
-	updatedContent, replacementCount, err := Update(input, "run 123")
+	updatedContent, replacementCount, err := readmecache.Update(input, "run 123")
 	if err != nil {
 		t.Fatalf("Update returned error: %v", err)
 	}
@@ -36,15 +38,21 @@ func TestUpdateAddsCacheKeyAndPreservesFragments(t *testing.T) {
 }
 
 func TestUpdateRejectsMissingCacheKey(t *testing.T) {
-	_, _, err := Update("https://raw.githubusercontent.com/agoodkind/stats/master/generated/overview.svg", " ")
-	if err == nil {
-		t.Fatal("Update returned nil error")
+	updatedContent, replacementCount, err := readmecache.Update("https://raw.githubusercontent.com/agoodkind/stats/master/generated/overview.svg", " ")
+	if err == nil || err.Error() != "cache key is required" {
+		t.Fatalf("Update error = %v, want cache key is required", err)
+	}
+	if updatedContent != "" || replacementCount != 0 {
+		t.Fatalf("rejected update returned content %q and count %d, want empty content and zero", updatedContent, replacementCount)
 	}
 }
 
 func TestUpdateRejectsContentWithoutStatsImages(t *testing.T) {
-	_, _, err := Update("## Hi there", "run-123")
-	if err == nil {
-		t.Fatal("Update returned nil error")
+	updatedContent, replacementCount, err := readmecache.Update("## Hi there", "run-123")
+	if err == nil || err.Error() != "no stats image URLs found" {
+		t.Fatalf("Update error = %v, want missing stats image diagnostic", err)
+	}
+	if updatedContent != "" || replacementCount != 0 {
+		t.Fatalf("rejected update returned content %q and count %d, want empty content and zero", updatedContent, replacementCount)
 	}
 }

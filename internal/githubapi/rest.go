@@ -5,7 +5,7 @@ import (
 	"log/slog"
 
 	internalmodel "github.com/agoodkind/stats/internal/model"
-	github "github.com/google/go-github/v81/github"
+	github "github.com/google/go-github/v93/github"
 )
 
 // FetchViews returns a per-repo map of ISO date strings to view counts for

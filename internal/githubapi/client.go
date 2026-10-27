@@ -15,7 +15,7 @@ import (
 	"time"
 
 	internalconfig "github.com/agoodkind/stats/internal/config"
-	github "github.com/google/go-github/v81/github"
+	github "github.com/google/go-github/v93/github"
 	"golang.org/x/oauth2"
 )
 
@@ -28,9 +28,18 @@ const (
 // Client is the stats-gh GitHub API wrapper, holding the REST client and the
 // authenticated viewer login it should query on behalf of.
 type Client struct {
-	httpClient *http.Client
-	rest       *github.Client
-	actor      string
+	httpClient      *http.Client
+	rest            *github.Client
+	actor           string
+	graphQLEndpoint string
+}
+
+// Options overrides HTTP settings for a configured GitHub API endpoint.
+// NewClient applies supplied values in order and ignores empty fields.
+type Options struct {
+	HTTPClient      *http.Client
+	RESTEndpoint    string
+	GraphQLEndpoint string
 }
 
 type graphQLRequest struct {
@@ -49,23 +58,50 @@ type rateLimitedTransport struct {
 
 // NewClient returns a Client configured from the given Config, using OAuth2
 // bearer authentication on every outbound HTTP request.
-func NewClient(cfg internalconfig.Config) *Client {
+func NewClient(cfg internalconfig.Config, options ...Options) (*Client, error) {
+	httpClient := &http.Client{Timeout: defaultRequestTimeout}
+	graphQLEndpoint := defaultGraphQLEndpoint
+	restEndpoint := ""
+	for _, option := range options {
+		if option.HTTPClient != nil {
+			copyClient := *option.HTTPClient
+			httpClient = &copyClient
+		}
+		if option.RESTEndpoint != "" {
+			restEndpoint = option.RESTEndpoint
+		}
+		if option.GraphQLEndpoint != "" {
+			graphQLEndpoint = option.GraphQLEndpoint
+		}
+	}
+	baseTransport := httpClient.Transport
+	if baseTransport == nil {
+		baseTransport = http.DefaultTransport
+	}
 	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: cfg.GitHubToken})
-	httpClient := &http.Client{
-		Timeout: defaultRequestTimeout,
-		Transport: &rateLimitedTransport{
-			base: &oauth2.Transport{
-				Source: tokenSource,
-				Base:   http.DefaultTransport,
-			},
+	httpClient.Transport = &rateLimitedTransport{
+		base: &oauth2.Transport{
+			Source: tokenSource,
+			Base:   baseTransport,
 		},
 	}
 
-	return &Client{
-		httpClient: httpClient,
-		rest:       github.NewClient(httpClient),
-		actor:      cfg.GitHubActor,
+	restOptions := []github.ClientOptionsFunc{github.WithHTTPClient(httpClient)}
+	if restEndpoint != "" {
+		restOptions = append(restOptions, github.WithURLs(&restEndpoint, nil))
 	}
+	restClient, err := github.NewClient(restOptions...)
+	if err != nil {
+		slog.Error("create github rest client", "error", err)
+		return nil, fmt.Errorf("create github rest client: %w", err)
+	}
+
+	return &Client{
+		httpClient:      httpClient,
+		rest:            restClient,
+		actor:           cfg.GitHubActor,
+		graphQLEndpoint: graphQLEndpoint,
+	}, nil
 }
 
 func (client *Client) doGraphQL(ctx context.Context, query string, variables json.RawMessage) (graphQLEnvelope, error) {
@@ -75,7 +111,7 @@ func (client *Client) doGraphQL(ctx context.Context, query string, variables jso
 		return graphQLEnvelope{}, fmt.Errorf("marshal graphql request: %w", err)
 	}
 
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, defaultGraphQLEndpoint, bytes.NewReader(payload))
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, client.graphQLEndpoint, bytes.NewReader(payload))
 	if err != nil {
 		slog.ErrorContext(ctx, "create graphql request", "error", err)
 		return graphQLEnvelope{}, fmt.Errorf("create graphql request: %w", err)

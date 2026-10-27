@@ -48,6 +48,12 @@ type Collector struct {
 	viewsHistoryPath string
 }
 
+// Options selects a configured production profile-counter client.
+// A nil client retains the default Komarev client.
+type Options struct {
+	ProfileCounter *internalprofilecounter.Client
+}
+
 type languageAccumulator struct {
 	name     string
 	color    string
@@ -58,13 +64,19 @@ type languageAccumulator struct {
 // New returns a Collector wired to the given GitHub service, using [time.Now]
 // for recency calculations and the default ViewsHistoryPath for accumulated
 // repo views.
-func New(client githubService) *Collector {
-	return &Collector{
+func New(client githubService, options ...Options) *Collector {
+	collector := &Collector{
 		client:           client,
 		profileCounter:   internalprofilecounter.New(),
 		now:              time.Now,
 		viewsHistoryPath: ViewsHistoryPath,
 	}
+	for _, option := range options {
+		if option.ProfileCounter != nil {
+			collector.profileCounter = option.ProfileCounter
+		}
+	}
+	return collector
 }
 
 // accumulateViews loads the on-disk views history, refreshes the profile

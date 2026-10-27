@@ -1,10 +1,12 @@
-package viewshistory
+package viewshistory_test
 
 import (
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/agoodkind/stats/internal/viewshistory"
 )
 
 func TestLoadMigratesSeedToCounter(t *testing.T) {
@@ -22,7 +24,7 @@ func TestLoadMigratesSeedToCounter(t *testing.T) {
 		t.Fatalf("write history fixture: %v", err)
 	}
 
-	history, err := Load(historyPath)
+	history, err := viewshistory.Load(historyPath)
 	if err != nil {
 		t.Fatalf("Load returned error: %v", err)
 	}
@@ -32,14 +34,14 @@ func TestLoadMigratesSeedToCounter(t *testing.T) {
 	if history.Seed != 0 {
 		t.Fatalf("expected seed to be cleared after migration, got %d", history.Seed)
 	}
-	if Total(history) != 1159 {
-		t.Fatalf("expected total 1159, got %d", Total(history))
+	if viewshistory.Total(history) != 1159 {
+		t.Fatalf("expected total 1159, got %d", viewshistory.Total(history))
 	}
 }
 
 func TestSaveWritesCounterOnly(t *testing.T) {
 	historyPath := filepath.Join(t.TempDir(), "views_history.json")
-	history := History{
+	history := viewshistory.History{
 		Counter: 1159,
 		Seed:    1152,
 		Repos: map[string]map[string]int{
@@ -47,7 +49,7 @@ func TestSaveWritesCounterOnly(t *testing.T) {
 		},
 	}
 
-	if err := Save(historyPath, history); err != nil {
+	if err := viewshistory.Save(historyPath, history); err != nil {
 		t.Fatalf("Save returned error: %v", err)
 	}
 	savedBytes, err := os.ReadFile(historyPath)

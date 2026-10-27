@@ -1,48 +1,61 @@
-package profilecounter
+package profilecounter_test
 
 import (
 	"context"
-	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
+	"sync/atomic"
 	"testing"
+
+	"github.com/agoodkind/stats/internal/profilecounter"
 )
 
-func TestParseBadgeCount(t *testing.T) {
-	badgeSVG := `<svg>
-<text x="40.6" y="14">Profile views</text>
-<text x="99" y="15" fill="#010101" fill-opacity=".3">1,159</text>
-<text x="99" y="14">1,159</text>
-</svg>`
-
-	count, err := parseBadgeCount(badgeSVG)
-	if err != nil {
-		t.Fatalf("parseBadgeCount returned error: %v", err)
-	}
-	if count != 1159 {
-		t.Fatalf("expected 1159, got %d", count)
+func TestFetchProfileViewsParsesBadgeAndPreservesQuery(t *testing.T) {
+	var requests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		requests.Add(1)
+		if request.URL.Path != "/badge" || request.URL.Query().Get("username") != "sample" ||
+			request.URL.Query().Get("style") != "flat" {
+			t.Errorf("badge request = %s", request.URL.String())
+		}
+		_, _ = io.WriteString(writer, `<svg><text>Profile views</text><text fill-opacity=".3">1,159</text><text>1,159</text></svg>`)
+	}))
+	defer server.Close()
+	client := profilecounter.New(profilecounter.Options{HTTPClient: server.Client(), Endpoint: server.URL + "/badge?style=flat"})
+	count, err := client.FetchProfileViews(context.Background(), " sample ")
+	if err != nil || count != 1159 || requests.Load() != 1 {
+		t.Fatalf("profile views = %d, error=%v, requests=%d", count, err, requests.Load())
 	}
 }
 
-func TestFetchProfileViews(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(responseWriter http.ResponseWriter, request *http.Request) {
-		if request.URL.Query().Get("username") != "agoodkind" {
-			t.Fatalf("expected username agoodkind, got %q", request.URL.Query().Get("username"))
-		}
-		_, _ = fmt.Fprint(responseWriter, `<svg><text>Profile views</text><text>1,234</text></svg>`)
-	}))
-	defer server.Close()
-
-	client := &Client{
-		httpClient: server.Client(),
-		endpoint:   server.URL,
-	}
-
-	count, err := client.FetchProfileViews(context.Background(), "agoodkind")
-	if err != nil {
-		t.Fatalf("FetchProfileViews returned error: %v", err)
-	}
-	if count != 1234 {
-		t.Fatalf("expected 1234, got %d", count)
+func TestFetchProfileViewsRejectsInvalidResponses(t *testing.T) {
+	for _, test := range []struct {
+		name         string
+		actor        string
+		status       int
+		body         string
+		want         string
+		wantRequests int32
+	}{
+		{name: "missing value", actor: "sample", status: http.StatusOK, body: "<svg><text>Profile views</text></svg>", want: "parse profile counter: badge value not found", wantRequests: 1},
+		{name: "HTTP failure", actor: "sample", status: http.StatusServiceUnavailable, body: "unavailable", want: "fetch profile counter: status 503", wantRequests: 1},
+		{name: "empty actor", actor: " ", status: http.StatusOK, body: "<svg><text>42</text></svg>", want: "profile counter actor is empty", wantRequests: 0},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			var requests atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, _ *http.Request) {
+				requests.Add(1)
+				writer.WriteHeader(test.status)
+				_, _ = io.WriteString(writer, test.body)
+			}))
+			defer server.Close()
+			client := profilecounter.New(profilecounter.Options{HTTPClient: server.Client(), Endpoint: server.URL})
+			count, err := client.FetchProfileViews(context.Background(), test.actor)
+			if err == nil || !strings.Contains(err.Error(), test.want) || count != 0 || requests.Load() != test.wantRequests {
+				t.Fatalf("profile views = %d, error=%v, requests=%d; want %q and %d requests", count, err, requests.Load(), test.want, test.wantRequests)
+			}
+		})
 	}
 }

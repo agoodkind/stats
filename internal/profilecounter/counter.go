@@ -30,12 +30,28 @@ type Client struct {
 	endpoint   string
 }
 
-// New returns a Client configured for the historical Komarev badge endpoint.
-func New() *Client {
-	return &Client{
+// Options overrides the badge endpoint and HTTP client.
+// New applies supplied values in order and ignores empty fields.
+type Options struct {
+	HTTPClient *http.Client
+	Endpoint   string
+}
+
+// New returns a client for the profile-view badge.
+func New(options ...Options) *Client {
+	client := &Client{
 		httpClient: &http.Client{Timeout: defaultRequestTimeout},
 		endpoint:   defaultEndpoint,
 	}
+	for _, option := range options {
+		if option.HTTPClient != nil {
+			client.httpClient = option.HTTPClient
+		}
+		if option.Endpoint != "" {
+			client.endpoint = option.Endpoint
+		}
+	}
+	return client
 }
 
 // FetchProfileViews fetches and parses the current profile-view count for the

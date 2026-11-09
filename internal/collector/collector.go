@@ -174,8 +174,15 @@ func (collector *Collector) accumulateViews(
 	return internalviewshistory.Total(viewsHistory), nil
 }
 
-// Collect runs every GitHub fetch in sequence and assembles a StatsSummary
-// plus a detailed diagnostics report.
+// Collect fetches GitHub data and returns a StatsSummary.
+//
+// The summary includes a Diagnostics report with repository inclusion
+// decisions and weighted language totals. Collect returns an empty summary
+// and an error if an operation fails.
+//
+// For example:
+//
+//	summary, err := collector.Collect(ctx, cfg)
 func (collector *Collector) Collect(
 	ctx context.Context,
 	cfg internalconfig.Config,

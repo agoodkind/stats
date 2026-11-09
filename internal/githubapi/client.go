@@ -62,22 +62,27 @@ func NewClient(cfg internalconfig.Config, options ...Options) (*Client, error) {
 	httpClient := &http.Client{Timeout: defaultRequestTimeout}
 	graphQLEndpoint := defaultGraphQLEndpoint
 	restEndpoint := ""
+
 	for _, option := range options {
 		if option.HTTPClient != nil {
 			copyClient := *option.HTTPClient
 			httpClient = &copyClient
 		}
+
 		if option.RESTEndpoint != "" {
 			restEndpoint = option.RESTEndpoint
 		}
+
 		if option.GraphQLEndpoint != "" {
 			graphQLEndpoint = option.GraphQLEndpoint
 		}
 	}
+
 	baseTransport := httpClient.Transport
 	if baseTransport == nil {
 		baseTransport = http.DefaultTransport
 	}
+
 	tokenSource := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: cfg.GitHubToken})
 	httpClient.Transport = &rateLimitedTransport{
 		base: &oauth2.Transport{
@@ -90,6 +95,7 @@ func NewClient(cfg internalconfig.Config, options ...Options) (*Client, error) {
 	if restEndpoint != "" {
 		restOptions = append(restOptions, github.WithURLs(&restEndpoint, nil))
 	}
+
 	restClient, err := github.NewClient(restOptions...)
 	if err != nil {
 		slog.Error("create github rest client", "error", err)
@@ -104,18 +110,31 @@ func NewClient(cfg internalconfig.Config, options ...Options) (*Client, error) {
 	}, nil
 }
 
-func (client *Client) doGraphQL(ctx context.Context, query string, variables json.RawMessage) (graphQLEnvelope, error) {
-	payload, err := json.Marshal(graphQLRequest{Query: query, Variables: variables})
+func (client *Client) doGraphQL(
+	ctx context.Context,
+	query string,
+	variables json.RawMessage,
+) (graphQLEnvelope, error) {
+	payload, err := json.Marshal(graphQLRequest{
+		Query:     query,
+		Variables: variables,
+	})
 	if err != nil {
 		slog.ErrorContext(ctx, "marshal graphql request", "error", err)
 		return graphQLEnvelope{}, fmt.Errorf("marshal graphql request: %w", err)
 	}
 
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, client.graphQLEndpoint, bytes.NewReader(payload))
+	request, err := http.NewRequestWithContext(
+		ctx,
+		http.MethodPost,
+		client.graphQLEndpoint,
+		bytes.NewReader(payload),
+	)
 	if err != nil {
 		slog.ErrorContext(ctx, "create graphql request", "error", err)
 		return graphQLEnvelope{}, fmt.Errorf("create graphql request: %w", err)
 	}
+
 	request.Header.Set("Content-Type", "application/json")
 
 	response, err := client.httpClient.Do(request)
@@ -130,19 +149,27 @@ func (client *Client) doGraphQL(ctx context.Context, query string, variables jso
 		slog.ErrorContext(ctx, "read graphql response", "error", readErr)
 		return graphQLEnvelope{}, fmt.Errorf("read graphql response: %w", readErr)
 	}
+
 	if closeErr != nil {
 		slog.ErrorContext(ctx, "close graphql response body", "error", closeErr)
 		return graphQLEnvelope{}, fmt.Errorf("close graphql response body: %w", closeErr)
 	}
+
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		responseText := strings.TrimSpace(string(responseBody))
-		return graphQLEnvelope{}, fmt.Errorf("graphql returned %d: %s", response.StatusCode, responseText)
+		return graphQLEnvelope{}, fmt.Errorf(
+			"graphql returned %d: %s",
+			response.StatusCode,
+			responseText,
+		)
 	}
+
 	var envelope graphQLEnvelope
 	if err := json.Unmarshal(responseBody, &envelope); err != nil {
 		slog.ErrorContext(ctx, "decode graphql response", "error", err)
 		return graphQLEnvelope{}, fmt.Errorf("decode graphql response: %w", err)
 	}
+
 	return envelope, nil
 }
 
@@ -155,13 +182,20 @@ func (transport *rateLimitedTransport) RoundTrip(request *http.Request) (*http.R
 		slog.ErrorContext(request.Context(), "github transport round trip", "error", err)
 		return nil, fmt.Errorf("github transport round trip: %w", err)
 	}
+
 	if !isRateLimited(response) {
 		return response, nil
 	}
 
 	retryAfter := strings.TrimSpace(response.Header.Get("Retry-After"))
 	resetAt := strings.TrimSpace(response.Header.Get("X-Ratelimit-Reset"))
-	return nil, fmt.Errorf("github rate limit response %d, retry-after=%q, reset=%q", response.StatusCode, retryAfter, resetAt)
+
+	return nil, fmt.Errorf(
+		"github rate limit response %d, retry-after=%q, reset=%q",
+		response.StatusCode,
+		retryAfter,
+		resetAt,
+	)
 }
 
 // isRateLimited returns true only when the response actually indicates a
@@ -173,13 +207,17 @@ func isRateLimited(response *http.Response) bool {
 	if response.StatusCode == http.StatusTooManyRequests {
 		return true
 	}
+
 	if response.StatusCode != http.StatusForbidden {
 		return false
 	}
+
 	if response.Header.Get("Retry-After") != "" {
 		return true
 	}
+
 	remaining := strings.TrimSpace(response.Header.Get("X-Ratelimit-Remaining"))
+
 	return remaining == "0"
 }
 
@@ -188,11 +226,13 @@ func splitRepositoryName(nameWithOwner string) (string, string, error) {
 	if !found {
 		return "", "", fmt.Errorf("split repository name %q", nameWithOwner)
 	}
+
 	owner = strings.TrimSpace(owner)
 	repo = strings.TrimSpace(repo)
 	if owner == "" || repo == "" {
 		return "", "", fmt.Errorf("split repository name %q", nameWithOwner)
 	}
+
 	return owner, repo, nil
 }
 

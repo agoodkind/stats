@@ -35,7 +35,14 @@ func Run(ctx context.Context, cfg internalconfig.Config, args []string) error {
 		command = commandName(strings.TrimSpace(args[0]))
 	}
 
-	logger.InfoContext(ctx, "starting stats-gh", "command", string(command), "actor", cfg.GitHubActor)
+	logger.InfoContext(
+		ctx,
+		"starting stats-gh",
+		"command",
+		string(command),
+		"actor",
+		cfg.GitHubActor,
+	)
 
 	switch command {
 	case commandGenerate:
@@ -47,6 +54,7 @@ func Run(ctx context.Context, cfg internalconfig.Config, args []string) error {
 			logger.ErrorContext(ctx, "write version", "error", err)
 			return fmt.Errorf("write version: %w", err)
 		}
+
 		return nil
 	case commandEmpty:
 		return fmt.Errorf("empty command")
@@ -62,20 +70,29 @@ func runGenerate(ctx context.Context, cfg internalconfig.Config) error {
 		logger.ErrorContext(ctx, "create github client", "error", err)
 		return fmt.Errorf("create github client: %w", err)
 	}
+
 	collector := internalcollector.New(client)
 	summary, err := collector.Collect(ctx, cfg)
 	if err != nil {
 		logger.ErrorContext(ctx, "collect stats", "error", err)
 		return fmt.Errorf("collect stats: %w", err)
 	}
-	if err := internalrender.WriteSVGs(summary, internalrender.Options{LanguagesCompression: string(cfg.LanguagesCompression)}); err != nil {
+
+	if err := internalrender.WriteSVGs(
+		summary,
+		internalrender.Options{LanguagesCompression: string(cfg.LanguagesCompression)},
+	); err != nil {
 		logger.ErrorContext(ctx, "write svgs", "error", err)
 		return fmt.Errorf("write svgs: %w", err)
 	}
-	if err := internaloutput.WriteStdout("generated overview.svg, languages.svg, and top_repos.svg\n"); err != nil {
+
+	if err := internaloutput.WriteStdout(
+		"generated overview.svg, languages.svg, and top_repos.svg\n",
+	); err != nil {
 		logger.ErrorContext(ctx, "write generate summary", "error", err)
 		return fmt.Errorf("write generate summary: %w", err)
 	}
+
 	return nil
 }
 
@@ -86,15 +103,20 @@ func runDiagnose(ctx context.Context, cfg internalconfig.Config) error {
 		logger.ErrorContext(ctx, "create github client", "error", err)
 		return fmt.Errorf("create github client: %w", err)
 	}
+
 	collector := internalcollector.New(client)
 	summary, err := collector.Collect(ctx, cfg)
 	if err != nil {
 		logger.ErrorContext(ctx, "collect stats for diagnose", "error", err)
 		return fmt.Errorf("collect stats for diagnose: %w", err)
 	}
-	if err := internaloutput.WriteStdout(internalcollector.FormatDiagnostics(summary.Diagnostics)); err != nil {
+
+	if err := internaloutput.WriteStdout(
+		internalcollector.FormatDiagnostics(summary.Diagnostics),
+	); err != nil {
 		logger.ErrorContext(ctx, "write diagnostics", "error", err)
 		return fmt.Errorf("write diagnostics: %w", err)
 	}
+
 	return nil
 }

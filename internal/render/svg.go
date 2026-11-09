@@ -125,17 +125,39 @@ func WriteSVGs(summary internalmodel.StatsSummary, opts Options) error {
 		slog.Error("create generated directory", "directory", generatedDirectory, "error", err)
 		return fmt.Errorf("create generated directory: %w", err)
 	}
-	if err := writeTemplate(filepath.Join(generatedDirectory, "overview.svg"), overviewTemplatePath, buildOverviewTemplateData(summary.Overview)); err != nil {
+
+	if err := writeTemplate(
+		filepath.Join(generatedDirectory, "overview.svg"),
+		overviewTemplatePath,
+		buildOverviewTemplateData(summary.Overview),
+	); err != nil {
 		return err
 	}
-	if err := writeTemplate(filepath.Join(generatedDirectory, "languages.svg"), languagesTemplatePath, buildLanguageTemplateData(summary.Overview.Name, summary.Languages, opts.LanguagesCompression)); err != nil {
+
+	if err := writeTemplate(
+		filepath.Join(generatedDirectory, "languages.svg"),
+		languagesTemplatePath,
+		buildLanguageTemplateData(
+			summary.Overview.Name,
+			summary.Languages,
+			opts.LanguagesCompression,
+		),
+	); err != nil {
 		return err
 	}
-	return writeTemplate(filepath.Join(generatedDirectory, "top_repos.svg"), topReposTemplatePath, buildTopReposTemplateData(summary.Overview.Name, summary.TopRepos))
+
+	return writeTemplate(
+		filepath.Join(generatedDirectory, "top_repos.svg"),
+		topReposTemplatePath,
+		buildTopReposTemplateData(summary.Overview.Name, summary.TopRepos),
+	)
 }
 
 func writeTemplate(outputPath string, templatePath string, data svgTemplateData) error {
-	parsedTemplate, err := template.New(filepath.Base(templatePath)).ParseFS(embeddedTemplates, templatePath)
+	parsedTemplate, err := template.New(filepath.Base(templatePath)).ParseFS(
+		embeddedTemplates,
+		templatePath,
+	)
 	if err != nil {
 		slog.Error("parse svg template", "template", templatePath, "error", err)
 		return fmt.Errorf("parse template %q: %w", templatePath, err)
@@ -152,6 +174,7 @@ func writeTemplate(outputPath string, templatePath string, data svgTemplateData)
 		slog.Error("write svg", "path", outputPath, "error", err)
 		return fmt.Errorf("write svg %q: %w", outputPath, err)
 	}
+
 	return nil
 }
 
@@ -168,36 +191,48 @@ func buildOverviewTemplateData(overview internalmodel.OverviewStats) overviewTem
 	}
 }
 
-func buildLanguageTemplateData(name string, languages []internalmodel.LanguageStat, compression string) languageTemplateData {
+func buildLanguageTemplateData(
+	name string,
+	languages []internalmodel.LanguageStat,
+	compression string,
+) languageTemplateData {
 	// Display percentages are compressed before normalization so a single
 	// dominant language does not crowd out smaller-but-still-substantive
 	// ones. The model's untransformed .Percentage stays unchanged so
 	// diagnostics still report the raw distribution.
 	compress := compressionFor(compression)
 	totalCompressed := 0.0
+
 	for _, language := range languages {
 		totalCompressed += compress(language.Weighted)
 	}
+
 	items := make([]languageTemplateItem, 0, len(languages))
 	for index, language := range languages {
 		percentage := 0.0
 		if totalCompressed > 0 {
 			percentage = clampPercentage(100 * compress(language.Weighted) / totalCompressed)
 		}
-		items = append(items, languageTemplateItem{
-			Name:              strings.TrimSpace(language.Name),
-			Color:             sanitizeColor(language.Color),
-			PercentageValue:   percentage,
-			PercentageDisplay: fmt.Sprintf("%.2f", percentage),
-			AnimationDelayMs:  index * animationDelayStepMs,
-		})
+
+		items = append(
+			items,
+			languageTemplateItem{
+				Name:              strings.TrimSpace(language.Name),
+				Color:             sanitizeColor(language.Color),
+				PercentageValue:   percentage,
+				PercentageDisplay: fmt.Sprintf("%.2f", percentage),
+				AnimationDelayMs:  index * animationDelayStepMs,
+			},
+		)
 	}
+
 	rows := packLanguageRows(items)
 	svgHeight := max(languagesChromeHeight+rows*languagesItemRowHeight, languagesMinSVGHeight)
 	displayName := strings.TrimSpace(name)
 	if displayName == "" {
 		displayName = topRepositoryNameDefault
 	}
+
 	return languageTemplateData{
 		Name:                displayName,
 		Items:               items,
@@ -214,38 +249,52 @@ func packLanguageRows(items []languageTemplateItem) int {
 	if len(items) == 0 {
 		return 0
 	}
+
 	rows := 1
 	rowWidth := 0
+
 	for _, item := range items {
-		itemWidth := languagesItemBasePx + languagesCharPx*(len(item.Name)+len(item.PercentageDisplay)+1)
+		itemWidth := languagesItemBasePx + languagesCharPx*(len(
+			item.Name,
+		)+len(item.PercentageDisplay)+1)
 		if rowWidth > 0 && rowWidth+itemWidth > languagesContainerWidth {
 			rows++
 			rowWidth = itemWidth
 			continue
 		}
+
 		rowWidth += itemWidth
 	}
+
 	return rows
 }
 
-func buildTopReposTemplateData(name string, repos []internalmodel.RepoActivity) topReposTemplateData {
+func buildTopReposTemplateData(
+	name string,
+	repos []internalmodel.RepoActivity,
+) topReposTemplateData {
 	rows := make([]topRepoView, 0, len(repos))
 	for index, repo := range repos {
-		rows = append(rows, topRepoView{
-			RepositoryName:   stripOwnerPrefix(strings.TrimSpace(repo.RepositoryName)),
-			Description:      truncateString(strings.TrimSpace(repo.Description), 38),
-			LangColor:        sanitizeColor(repo.LangColor),
-			StarsDisplay:     formatInteger(repo.Stars),
-			UpdatedAgo:       repo.UpdatedAgo,
-			AnimationDelayMs: index * animationDelayStepMs,
-		})
+		rows = append(
+			rows,
+			topRepoView{
+				RepositoryName:   stripOwnerPrefix(strings.TrimSpace(repo.RepositoryName)),
+				Description:      truncateString(strings.TrimSpace(repo.Description), 38),
+				LangColor:        sanitizeColor(repo.LangColor),
+				StarsDisplay:     formatInteger(repo.Stars),
+				UpdatedAgo:       repo.UpdatedAgo,
+				AnimationDelayMs: index * animationDelayStepMs,
+			},
+		)
 	}
 
 	displayName := strings.TrimSpace(name)
 	if displayName == "" {
 		displayName = topRepositoryNameDefault
 	}
+
 	svgHeight := topReposSVGHeight(len(rows))
+
 	return topReposTemplateData{
 		Name:                displayName,
 		Repos:               rows,
@@ -258,11 +307,13 @@ func topReposSVGHeight(repoCount int) int {
 	if repoCount <= 0 {
 		return topReposMinSVGHeight
 	}
+
 	rowCount := (repoCount + 1) / 2
 	contentHeight := topReposTitleHeight + rowCount*topReposCardHeight
 	if rowCount > 1 {
 		contentHeight += (rowCount - 1) * topReposGridGap
 	}
+
 	return max(topReposFrameHeight+contentHeight, topReposMinSVGHeight)
 }
 
@@ -286,6 +337,7 @@ func compressionFor(mode string) func(float64) float64 {
 			if value <= 0 {
 				return 0
 			}
+
 			return math.Log10(1 + value)
 		}
 	case compressionSqrt:
@@ -295,6 +347,7 @@ func compressionFor(mode string) func(float64) float64 {
 			if value <= 0 {
 				return 0
 			}
+
 			return math.Sqrt(value)
 		}
 	}
@@ -304,9 +357,11 @@ func truncateString(value string, maxLen int) string {
 	if len(value) <= maxLen {
 		return value
 	}
+
 	if maxLen <= 1 {
 		return value[:maxLen]
 	}
+
 	return value[:maxLen-1] + "…"
 }
 
@@ -314,6 +369,7 @@ func stripOwnerPrefix(repositoryName string) string {
 	if _, after, found := strings.Cut(repositoryName, "/"); found {
 		return after
 	}
+
 	return repositoryName
 }
 
@@ -322,6 +378,7 @@ func sanitizeColor(color string) string {
 	if hexColorPattern.MatchString(trimmedColor) {
 		return trimmedColor
 	}
+
 	return fallbackColor
 }
 
@@ -330,6 +387,7 @@ func formatInteger(value int) string {
 	if value < 0 {
 		return "-" + formatPositiveInteger(valueText[1:])
 	}
+
 	return formatPositiveInteger(valueText)
 }
 
@@ -342,10 +400,12 @@ func formatPositiveInteger(valueText string) string {
 	if prefixLength == 0 {
 		prefixLength = 3
 	}
+
 	parts := []string{valueText[:prefixLength]}
 	for index := prefixLength; index < len(valueText); index += 3 {
 		parts = append(parts, valueText[index:index+3])
 	}
+
 	return strings.Join(parts, ",")
 }
 
@@ -353,8 +413,10 @@ func clampPercentage(value float64) float64 {
 	if value < 0 {
 		return 0
 	}
+
 	if value > 100 {
 		return 100
 	}
+
 	return value
 }

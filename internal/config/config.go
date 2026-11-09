@@ -161,9 +161,15 @@ func LoadFromPath(path string) (Config, error) {
 	}
 
 	cfg := Config{
-		Path:                      cleanPath,
-		GitHubToken:               firstNonEmpty(rawConfig.GitHub.Token, firstEnvironmentValue(githubTokenEnvironmentKeys)),
-		GitHubActor:               firstNonEmpty(rawConfig.GitHub.Actor, firstEnvironmentValue(githubActorEnvironmentKeys)),
+		Path: cleanPath,
+		GitHubToken: firstNonEmpty(
+			rawConfig.GitHub.Token,
+			firstEnvironmentValue(githubTokenEnvironmentKeys),
+		),
+		GitHubActor: firstNonEmpty(
+			rawConfig.GitHub.Actor,
+			firstEnvironmentValue(githubActorEnvironmentKeys),
+		),
 		LogLevel:                  firstNonEmpty(rawConfig.Logging.Level, "INFO"),
 		RecencyHalfLife:           defaultRecencyHalfLife,
 		RecencyFloor:              defaultRecencyFloor,
@@ -177,13 +183,17 @@ func LoadFromPath(path string) (Config, error) {
 		ContributedIncludeInLOC:   boolDefaultTrue(rawConfig.Contributed.IncludeInLOC),
 		ContributedIncludeInLangs: boolDefaultTrue(rawConfig.Contributed.IncludeInLanguages),
 		TopReposLimit:             intOrDefault(rawConfig.TopRepos.Limit, defaultTopReposLimit),
-		TopReposStarCoefficient:   floatOrDefault(rawConfig.TopRepos.StarCoefficient, defaultStarCoefficient),
-		LanguagesCompression:      LanguagesSqrt,
+		TopReposStarCoefficient: floatOrDefault(
+			rawConfig.TopRepos.StarCoefficient,
+			defaultStarCoefficient,
+		),
+		LanguagesCompression: LanguagesSqrt,
 	}
 
 	if cfg.GitHubToken == "" {
 		return Config{}, fmt.Errorf("config file %q is missing github.token", cleanPath)
 	}
+
 	if cfg.GitHubActor == "" {
 		return Config{}, fmt.Errorf("config file %q is missing github.actor", cleanPath)
 	}
@@ -193,13 +203,16 @@ func LoadFromPath(path string) (Config, error) {
 		if err != nil {
 			return Config{}, err
 		}
+
 		cfg.RecencyHalfLife = parsedHalfLife
 	}
+
 	if rawConfig.Recency.Floor != nil {
 		parsedFloor, err := validateFloor(*rawConfig.Recency.Floor)
 		if err != nil {
 			return Config{}, err
 		}
+
 		cfg.RecencyFloor = parsedFloor
 	}
 
@@ -208,6 +221,7 @@ func LoadFromPath(path string) (Config, error) {
 		if err != nil {
 			return Config{}, err
 		}
+
 		cfg.ContributedInclude = parsed
 	}
 
@@ -216,10 +230,12 @@ func LoadFromPath(path string) (Config, error) {
 		if err != nil {
 			return Config{}, err
 		}
+
 		cfg.LanguagesCompression = parsed
 	}
 
 	cfg.Path = resolvedPath(cleanPath)
+
 	return cfg, nil
 }
 
@@ -228,6 +244,7 @@ func resolvedPath(path string) string {
 	if err != nil {
 		return path
 	}
+
 	return absolutePath
 }
 
@@ -238,6 +255,7 @@ func firstNonEmpty(values ...string) string {
 			return trimmedValue
 		}
 	}
+
 	return ""
 }
 
@@ -248,21 +266,26 @@ func firstEnvironmentValue(keys []string) string {
 			return value
 		}
 	}
+
 	return ""
 }
 
 func stringSet(values []string, lower bool) map[string]struct{} {
 	result := make(map[string]struct{})
+
 	for _, value := range values {
 		trimmedValue := strings.TrimSpace(value)
 		if trimmedValue == "" {
 			continue
 		}
+
 		if lower {
 			trimmedValue = strings.ToLower(trimmedValue)
 		}
+
 		result[trimmedValue] = struct{}{}
 	}
+
 	return result
 }
 
@@ -274,6 +297,7 @@ func boolDefaultTrue(value *bool) bool {
 	if value == nil {
 		return true
 	}
+
 	return *value
 }
 
@@ -281,6 +305,7 @@ func intOrDefault(value *int, fallback int) int {
 	if value == nil {
 		return fallback
 	}
+
 	return *value
 }
 
@@ -288,6 +313,7 @@ func floatOrDefault(value *float64, fallback float64) float64 {
 	if value == nil {
 		return fallback
 	}
+
 	return *value
 }
 
@@ -298,8 +324,14 @@ func parseContributedInclude(value string) (ContributedInclude, error) {
 	case ContributedPublicOnly:
 		return ContributedPublicOnly, nil
 	default:
-		err := fmt.Errorf("contributed.include %q must be %q or %q", value, ContributedAll, ContributedPublicOnly)
+		err := fmt.Errorf(
+			"contributed.include %q must be %q or %q",
+			value,
+			ContributedAll,
+			ContributedPublicOnly,
+		)
 		slog.Error("invalid contributed.include", "value", value, "error", err)
+
 		return "", err
 	}
 }
@@ -313,8 +345,15 @@ func parseLanguagesCompression(value string) (LanguagesCompression, error) {
 	case LanguagesLog:
 		return LanguagesLog, nil
 	default:
-		err := fmt.Errorf("languages.compression %q must be %q, %q, or %q", value, LanguagesLinear, LanguagesSqrt, LanguagesLog)
+		err := fmt.Errorf(
+			"languages.compression %q must be %q, %q, or %q",
+			value,
+			LanguagesLinear,
+			LanguagesSqrt,
+			LanguagesLog,
+		)
 		slog.Error("invalid languages.compression", "value", value, "error", err)
+
 		return "", err
 	}
 }
@@ -327,6 +366,7 @@ func parseHalfLife(value string) (time.Duration, error) {
 			slog.Error("parse recency.half_life years", "value", value, "error", err)
 			return 0, fmt.Errorf("parse recency.half_life years %q: %w", value, err)
 		}
+
 		return time.Duration(yearCount * float64(hoursPerYear) * float64(time.Hour)), nil
 	}
 
@@ -335,6 +375,7 @@ func parseHalfLife(value string) (time.Duration, error) {
 		slog.Error("parse recency.half_life", "value", value, "error", err)
 		return 0, fmt.Errorf("parse recency.half_life %q: %w", value, err)
 	}
+
 	return duration, nil
 }
 
@@ -342,5 +383,6 @@ func validateFloor(value float64) (float64, error) {
 	if value < 0 || value > 1 {
 		return 0, fmt.Errorf("recency.floor must be between 0 and 1")
 	}
+
 	return value, nil
 }

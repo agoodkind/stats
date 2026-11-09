@@ -8,16 +8,20 @@ import (
 )
 
 func TestUpdateAddsCacheKeyAndPreservesFragments(t *testing.T) {
-	input := strings.Join([]string{
-		`<picture><source srcset="https://raw.githubusercontent.com/agoodkind/stats/master/generated/overview.svg#gh-dark-mode-only" /></picture>`,
-		`<img src="https://raw.githubusercontent.com/agoodkind/stats/master/generated/languages.svg" />`,
-		`<img src="https://raw.githubusercontent.com/agoodkind/stats/master/generated/top_repos.svg?cache=old#gh-dark-mode-only" />`,
-	}, "\n")
+	input := strings.Join(
+		[]string{
+			`<picture><source srcset="https://raw.githubusercontent.com/agoodkind/stats/master/generated/overview.svg#gh-dark-mode-only" /></picture>`,
+			`<img src="https://raw.githubusercontent.com/agoodkind/stats/master/generated/languages.svg" />`,
+			`<img src="https://raw.githubusercontent.com/agoodkind/stats/master/generated/top_repos.svg?cache=old#gh-dark-mode-only" />`,
+		},
+		"\n",
+	)
 
 	updatedContent, replacementCount, err := readmecache.Update(input, "run 123")
 	if err != nil {
 		t.Fatalf("Update returned error: %v", err)
 	}
+
 	if replacementCount != 3 {
 		t.Fatalf("replacementCount = %d, want 3", replacementCount)
 	}
@@ -32,18 +36,27 @@ func TestUpdateAddsCacheKeyAndPreservesFragments(t *testing.T) {
 			t.Fatalf("updated content missing %q:\n%s", expectedFragment, updatedContent)
 		}
 	}
+
 	if strings.Contains(updatedContent, "?cache=old") {
 		t.Fatalf("updated content kept old cache key:\n%s", updatedContent)
 	}
 }
 
 func TestUpdateRejectsMissingCacheKey(t *testing.T) {
-	updatedContent, replacementCount, err := readmecache.Update("https://raw.githubusercontent.com/agoodkind/stats/master/generated/overview.svg", " ")
+	updatedContent, replacementCount, err := readmecache.Update(
+		"https://raw.githubusercontent.com/agoodkind/stats/master/generated/overview.svg",
+		" ",
+	)
 	if err == nil || err.Error() != "cache key is required" {
 		t.Fatalf("Update error = %v, want cache key is required", err)
 	}
+
 	if updatedContent != "" || replacementCount != 0 {
-		t.Fatalf("rejected update returned content %q and count %d, want empty content and zero", updatedContent, replacementCount)
+		t.Fatalf(
+			"rejected update returned content %q and count %d, want empty content and zero",
+			updatedContent,
+			replacementCount,
+		)
 	}
 }
 
@@ -52,7 +65,12 @@ func TestUpdateRejectsContentWithoutStatsImages(t *testing.T) {
 	if err == nil || err.Error() != "no stats image URLs found" {
 		t.Fatalf("Update error = %v, want missing stats image diagnostic", err)
 	}
+
 	if updatedContent != "" || replacementCount != 0 {
-		t.Fatalf("rejected update returned content %q and count %d, want empty content and zero", updatedContent, replacementCount)
+		t.Fatalf(
+			"rejected update returned content %q and count %d, want empty content and zero",
+			updatedContent,
+			replacementCount,
+		)
 	}
 }

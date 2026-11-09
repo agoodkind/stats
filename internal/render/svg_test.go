@@ -62,30 +62,72 @@ func TestWriteSVGsEscapesDangerousContent(t *testing.T) {
 	}
 
 	topReposSVG, _ := readGeneratedSVG(t, temporaryDirectory, "top_repos.svg")
-	for _, unescaped := range []string{`<script>alert("repo")</script>`, `owner/`, `A <script>alert("x")</script>`, `<script>alert("d")</script>`} {
+
+	for _, unescaped := range []string{
+		`<script>alert("repo")</script>`,
+		`owner/`,
+		`A <script>alert("x")</script>`,
+		`<script>alert("d")</script>`,
+	} {
 		if strings.Contains(topReposSVG, unescaped) {
 			t.Fatalf("top_repos.svg contains unsafe or untrimmed text %q", unescaped)
 		}
 	}
-	for _, expectedValue := range []string{`repo&lt;script&gt;alert(&#34;repo&#34;)&lt;/script&gt;`, `desc &lt;script&gt;alert(&#34;d&#34;)&lt;/script&gt;`, `A &lt;script&gt;`, `&amp;`, `&#9733; 7`, `today`} {
+
+	for _, expectedValue := range []string{
+		`repo&lt;script&gt;alert(&#34;repo&#34;)&lt;/script&gt;`,
+		`desc &lt;script&gt;alert(&#34;d&#34;)&lt;/script&gt;`,
+		`A &lt;script&gt;`,
+		`&amp;`,
+		`&#9733; 7`,
+		`today`,
+	} {
 		if !strings.Contains(topReposSVG, expectedValue) {
-			t.Fatalf("top_repos.svg does not contain visible value %q: %s", expectedValue, topReposSVG)
+			t.Fatalf(
+				"top_repos.svg does not contain visible value %q: %s",
+				expectedValue,
+				topReposSVG,
+			)
 		}
 	}
 
 	overviewSVG, _ := readGeneratedSVG(t, temporaryDirectory, "overview.svg")
-	for _, expectedValue := range []string{"1,000", "2,000", "3,000,000", "4,000,000", "5,000", "6,000", "7,000"} {
+
+	for _, expectedValue := range []string{
+		"1,000",
+		"2,000",
+		"3,000,000",
+		"4,000,000",
+		"5,000",
+		"6,000",
+		"7,000",
+	} {
 		if !strings.Contains(overviewSVG, expectedValue) {
-			t.Fatalf("overview.svg does not contain formatted value %q: %s", expectedValue, overviewSVG)
+			t.Fatalf(
+				"overview.svg does not contain formatted value %q: %s",
+				expectedValue,
+				overviewSVG,
+			)
 		}
 	}
+
 	languagesSVG, _ := readGeneratedSVG(t, temporaryDirectory, "languages.svg")
-	if strings.Contains(languagesSVG, `<img src=x onerror=alert(1)>`) || strings.Contains(languagesSVG, `onload=`) {
+	if strings.Contains(languagesSVG, `<img src=x onerror=alert(1)>`) ||
+		strings.Contains(languagesSVG, `onload=`) {
 		t.Fatal("languages.svg contains an unsafe tag or event attribute")
 	}
-	for _, expectedValue := range []string{`Go &lt;img src=x onerror=alert(1)&gt;`, `#586069`, `100.00%`} {
+
+	for _, expectedValue := range []string{
+		`Go &lt;img src=x onerror=alert(1)&gt;`,
+		`#586069`,
+		`100.00%`,
+	} {
 		if !strings.Contains(languagesSVG, expectedValue) {
-			t.Fatalf("languages.svg does not contain escaped visible value %q: %s", expectedValue, languagesSVG)
+			t.Fatalf(
+				"languages.svg does not contain escaped visible value %q: %s",
+				expectedValue,
+				languagesSVG,
+			)
 		}
 	}
 }
@@ -94,15 +136,20 @@ func TestTopReposHeightScalesWithRows(t *testing.T) {
 	temporaryDirectory := t.TempDir()
 	t.Chdir(temporaryDirectory)
 	repositories := make([]internalmodel.RepoActivity, 0, 6)
+
 	for index := 0; index < 6; index++ {
-		repositories = append(repositories, internalmodel.RepoActivity{
-			RepositoryName: "agoodkind/repo",
-			Description:    "test repository",
-			LangColor:      "#00ADD8",
-			UpdatedAgo:     "today",
-			Stars:          index,
-		})
+		repositories = append(
+			repositories,
+			internalmodel.RepoActivity{
+				RepositoryName: "agoodkind/repo",
+				Description:    "test repository",
+				LangColor:      "#00ADD8",
+				UpdatedAgo:     "today",
+				Stars:          index,
+			},
+		)
 	}
+
 	summary := internalmodel.StatsSummary{
 		Overview: internalmodel.OverviewStats{Name: "Alex Goodkind"},
 		TopRepos: repositories[:1],
@@ -110,6 +157,7 @@ func TestTopReposHeightScalesWithRows(t *testing.T) {
 	if err := render.WriteSVGs(summary, render.Options{LanguagesCompression: "sqrt"}); err != nil {
 		t.Fatalf("render one repository: %v", err)
 	}
+
 	_, oneRepository := readGeneratedSVG(t, temporaryDirectory, "top_repos.svg")
 	if oneRepository.Height != 150 {
 		t.Fatalf("one-repository height = %d, want 150", oneRepository.Height)
@@ -119,13 +167,21 @@ func TestTopReposHeightScalesWithRows(t *testing.T) {
 	if err := render.WriteSVGs(summary, render.Options{LanguagesCompression: "sqrt"}); err != nil {
 		t.Fatalf("render six repositories: %v", err)
 	}
+
 	topReposSVG, sixRepositories := readGeneratedSVG(t, temporaryDirectory, "top_repos.svg")
-	if sixRepositories.Height != 314 || sixRepositories.Height <= oneRepository.Height || sixRepositories.Frame.Height != 272 {
-		t.Fatalf("six-repository dimensions = %+v, want height 314 and frame height 272 above baseline %d", sixRepositories, oneRepository.Height)
+	if sixRepositories.Height != 314 || sixRepositories.Height <= oneRepository.Height ||
+		sixRepositories.Frame.Height != 272 {
+		t.Fatalf(
+			"six-repository dimensions = %+v, want height 314 and frame height 272 above baseline %d",
+			sixRepositories,
+			oneRepository.Height,
+		)
 	}
+
 	if cards := strings.Count(topReposSVG, `class="card"`); cards != len(repositories) {
 		t.Fatalf("rendered cards = %d, want %d", cards, len(repositories))
 	}
+
 	for _, cardStyle := range []string{`box-sizing: border-box;`, `height: 74px;`} {
 		if !strings.Contains(topReposSVG, cardStyle) {
 			t.Fatalf("top_repos.svg does not contain card style %q", cardStyle)
@@ -155,6 +211,7 @@ func TestLanguagesHeightScalesWithWrappedRows(t *testing.T) {
 	if err := render.WriteSVGs(summary, render.Options{LanguagesCompression: "sqrt"}); err != nil {
 		t.Fatalf("render one language: %v", err)
 	}
+
 	_, oneLanguage := readGeneratedSVG(t, temporaryDirectory, "languages.svg")
 	if oneLanguage.Height != 140 {
 		t.Fatalf("one-language height = %d, want 140", oneLanguage.Height)
@@ -164,13 +221,21 @@ func TestLanguagesHeightScalesWithWrappedRows(t *testing.T) {
 	if err := render.WriteSVGs(summary, render.Options{LanguagesCompression: "sqrt"}); err != nil {
 		t.Fatalf("render ten languages: %v", err)
 	}
+
 	languagesSVG, wrappedLanguages := readGeneratedSVG(t, temporaryDirectory, "languages.svg")
-	if wrappedLanguages.Height <= oneLanguage.Height || wrappedLanguages.Frame.Height <= oneLanguage.Frame.Height {
-		t.Fatalf("wrapped dimensions = %+v, want greater SVG and frame heights than %+v", wrappedLanguages, oneLanguage)
+	if wrappedLanguages.Height <= oneLanguage.Height ||
+		wrappedLanguages.Frame.Height <= oneLanguage.Frame.Height {
+		t.Fatalf(
+			"wrapped dimensions = %+v, want greater SVG and frame heights than %+v",
+			wrappedLanguages,
+			oneLanguage,
+		)
 	}
+
 	if labels := strings.Count(languagesSVG, `class="lang"`); labels != len(languages) {
 		t.Fatalf("rendered language labels = %d, want %d", labels, len(languages))
 	}
+
 	for _, language := range languages {
 		if !strings.Contains(languagesSVG, ">"+language.Name+"</span>") {
 			t.Fatalf("languages.svg does not display %q", language.Name)
@@ -184,12 +249,20 @@ func readGeneratedSVG(t *testing.T, directory string, filename string) (string, 
 	if err != nil {
 		t.Fatalf("read generated SVG %s: %v", filename, err)
 	}
+
 	var document renderedSVG
 	if err := xml.Unmarshal(contents, &document); err != nil {
 		t.Fatalf("decode generated SVG %s: %v", filename, err)
 	}
-	if document.XMLName.Space != "http://www.w3.org/2000/svg" || document.ID != "gh-dark-mode-only" || document.Width != 360 || document.Height <= 0 || document.Frame.Width != 318 || document.Frame.Height <= 0 {
+
+	if document.XMLName.Space != "http://www.w3.org/2000/svg" ||
+		document.ID != "gh-dark-mode-only" ||
+		document.Width != 360 ||
+		document.Height <= 0 ||
+		document.Frame.Width != 318 ||
+		document.Frame.Height <= 0 {
 		t.Fatalf("generated SVG %s has invalid dimensions or root: %+v", filename, document)
 	}
+
 	return string(contents), document
 }

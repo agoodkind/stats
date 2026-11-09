@@ -1,0 +1,19 @@
+# staticcheck-extra: generated_at=2026-11-09T13:58:43Z
+cmd/stats-gh-readme-cache/main.go:14:1: commandentry: delegate implementation to an importable package [id=bcaf72bce670890ba7f10e1a05f21268:1]	# staticcheck-extra:first_added=2026-11-09T13:58:26Z last_seen=2026-11-09T13:58:43Z
+cmd/stats-gh-readme-cache/main.go:16:1: commandentry: delegate implementation to an importable package [id=53aed45ae28d305ec78f1949734f304d:1]	# staticcheck-extra:first_added=2026-11-09T13:58:26Z last_seen=2026-11-09T13:58:43Z
+cmd/stats-gh-readme-cache/main.go:26:1: commandentry: delegate implementation to an importable package [id=670a3256384fdb545909c5e957c394c3:1]	# staticcheck-extra:first_added=2026-11-09T13:58:26Z last_seen=2026-11-09T13:58:43Z
+cmd/stats-gh/main.go:26:1: commandentry: delegate implementation to an importable package [id=40c03ac01a6664bce39609dfed9c84e6:1]	# staticcheck-extra:first_added=2026-11-09T13:58:26Z last_seen=2026-11-09T13:58:43Z
+cmd/stats-gh/main.go:54:1: commandentry: delegate implementation to an importable package [id=43bbb9bc01bf38a645778ac7a651392f:1]	# staticcheck-extra:first_added=2026-11-09T13:58:26Z last_seen=2026-11-09T13:58:43Z
+internal/app/app.go:29:1: doc_structure: add an introduction, explanation, and example or layout	# staticcheck-extra:first_added=2026-11-09T13:57:35Z last_seen=2026-11-09T13:57:35Z
+internal/collector/collector.go:64:1: doc_structure: add an introduction, explanation, and example or layout	# staticcheck-extra:first_added=2026-11-09T13:57:35Z last_seen=2026-11-09T13:57:35Z
+internal/config/config.go:143:1: doc_structure: add an introduction, explanation, and example or layout	# staticcheck-extra:first_added=2026-11-09T13:57:35Z last_seen=2026-11-09T13:57:35Z
+internal/githubapi/client.go:59:1: doc_structure: add an introduction, explanation, and example or layout	# staticcheck-extra:first_added=2026-11-09T13:57:35Z last_seen=2026-11-09T13:57:35Z
+internal/githubapi/graphql.go:275:1: doc_structure: add an introduction, explanation, and example or layout	# staticcheck-extra:first_added=2026-11-09T13:57:35Z last_seen=2026-11-09T13:57:35Z
+internal/githubapi/rest.go:64:1: doc_structure: add an introduction, explanation, and example or layout	# staticcheck-extra:first_added=2026-11-09T13:57:35Z last_seen=2026-11-09T13:57:35Z
+internal/logging/logging.go:33:1: doc_structure: add an introduction, explanation, and example or layout	# staticcheck-extra:first_added=2026-11-09T13:57:35Z last_seen=2026-11-09T13:57:35Z
+internal/output/output.go:20:1: doc_structure: add an introduction, explanation, and example or layout	# staticcheck-extra:first_added=2026-11-09T13:57:35Z last_seen=2026-11-09T13:57:35Z
+internal/profilecounter/counter.go:57:1: doc_structure: add an introduction, explanation, and example or layout	# staticcheck-extra:first_added=2026-11-09T13:57:35Z last_seen=2026-11-09T13:57:35Z
+internal/readmecache/cache.go:18:1: doc_structure: add an introduction, explanation, and example or layout	# staticcheck-extra:first_added=2026-11-09T13:57:35Z last_seen=2026-11-09T13:57:35Z
+internal/render/svg.go:121:1: doc_structure: add an introduction, explanation, and example or layout	# staticcheck-extra:first_added=2026-11-09T13:57:35Z last_seen=2026-11-09T13:57:35Z
+internal/version/version.go:9:1: doc_structure: add an introduction, explanation, and example or layout	# staticcheck-extra:first_added=2026-11-09T13:57:35Z last_seen=2026-11-09T13:57:35Z
+internal/viewshistory/history.go:88:1: doc_structure: add an introduction, explanation, and example or layout	# staticcheck-extra:first_added=2026-11-09T13:57:35Z last_seen=2026-11-09T13:57:35Z

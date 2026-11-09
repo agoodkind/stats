@@ -24,12 +24,16 @@ func Update(content string, cacheKey string) (string, int, error) {
 
 	escapedCacheKey := url.QueryEscape(trimmedCacheKey)
 	replacementCount := 0
-	updatedContent := statsImageURLPattern.ReplaceAllStringFunc(content, func(match string) string {
-		replacementCount++
-		baseURL, fragment := splitFragment(match)
-		baseURL = stripQuery(baseURL)
-		return fmt.Sprintf("%s?%s=%s%s", baseURL, cacheQueryName, escapedCacheKey, fragment)
-	})
+	updatedContent := statsImageURLPattern.ReplaceAllStringFunc(
+		content,
+		func(match string) string {
+			replacementCount++
+			baseURL, fragment := splitFragment(match)
+			baseURL = stripQuery(baseURL)
+
+			return fmt.Sprintf("%s?%s=%s%s", baseURL, cacheQueryName, escapedCacheKey, fragment)
+		},
+	)
 
 	if replacementCount == 0 {
 		return "", 0, fmt.Errorf("no stats image URLs found")

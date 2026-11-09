@@ -43,11 +43,15 @@ func run() int {
 		_ = closer.Close()
 	}()
 
-	ctx = internallogging.WithLogger(ctx, logger.With("config_path", cfg.Path, "github_actor", cfg.GitHubActor))
+	ctx = internallogging.WithLogger(
+		ctx,
+		logger.With("config_path", cfg.Path, "github_actor", cfg.GitHubActor),
+	)
 	if err := app.Run(ctx, cfg, commandArgs); err != nil {
 		logger.ErrorContext(ctx, "command failed", "err", err)
 		return 1
 	}
+
 	return 0
 }
 
@@ -60,5 +64,6 @@ func parseArgs(args []string) (string, []string, error) {
 		slog.Error("parse stats-gh flags", "error", err)
 		return "", nil, fmt.Errorf("parse stats-gh flags: %w", err)
 	}
+
 	return *configPath, flagSet.Args(), nil
 }

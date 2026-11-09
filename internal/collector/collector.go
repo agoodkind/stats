@@ -22,11 +22,25 @@ import (
 const diagnosticsScope = "all-time owned repositories, recency weighted"
 
 type githubService interface {
-	FetchViewerRepositories(ctx context.Context) (internalmodel.ViewerSummary, []internalmodel.Repository, []internalmodel.Repository, error)
+	FetchViewerRepositories(
+		ctx context.Context,
+	) (internalmodel.ViewerSummary, []internalmodel.Repository, []internalmodel.Repository, error)
 	FetchTotalContributions(ctx context.Context) (int, error)
-	FetchContributorActivity(ctx context.Context, repositories []internalmodel.Repository, now time.Time, halfLife time.Duration, floor float64) ([]internalmodel.RepoActivity, int, int, error)
-	FetchViews(ctx context.Context, repositories []internalmodel.Repository) (map[string]map[string]int, error)
-	EstimateExternalContributions(ctx context.Context, repositories []internalmodel.Repository) ([]internalmodel.ExternalContributionEstimate, error)
+	FetchContributorActivity(
+		ctx context.Context,
+		repositories []internalmodel.Repository,
+		now time.Time,
+		halfLife time.Duration,
+		floor float64,
+	) ([]internalmodel.RepoActivity, int, int, error)
+	FetchViews(
+		ctx context.Context,
+		repositories []internalmodel.Repository,
+	) (map[string]map[string]int, error)
+	EstimateExternalContributions(
+		ctx context.Context,
+		repositories []internalmodel.Repository,
+	) ([]internalmodel.ExternalContributionEstimate, error)
 }
 
 type profileCounterService interface {
@@ -61,6 +75,19 @@ type languageAccumulator struct {
 	weighted float64
 }
 
+type activityData struct {
+	viewer               internalmodel.ViewerSummary
+	ownedRepositories    []internalmodel.Repository
+	publicOwned          []internalmodel.Repository
+	externalRepositories []internalmodel.Repository
+	contributionCount    int
+	activities           []internalmodel.RepoActivity
+	additions            int
+	deletions            int
+	externalAdditions    int
+	externalDeletions    int
+}
+
 // New returns a Collector wired to the given GitHub service, using [time.Now]
 // for recency calculations and the default ViewsHistoryPath for accumulated
 // repo views.
@@ -71,11 +98,13 @@ func New(client githubService, options ...Options) *Collector {
 		now:              time.Now,
 		viewsHistoryPath: ViewsHistoryPath,
 	}
+
 	for _, option := range options {
 		if option.ProfileCounter != nil {
 			collector.profileCounter = option.ProfileCounter
 		}
 	}
+
 	return collector
 }
 
@@ -84,123 +113,155 @@ func New(client githubService, options ...Options) *Collector {
 // 14-day repository window, persists the result, and returns the displayed
 // lifetime total. Returns 0 with no error when viewsHistoryPath is empty
 // (tests).
-func (collector *Collector) accumulateViews(ctx context.Context, cfg internalconfig.Config, freshViews map[string]map[string]int) (int, error) {
+func (collector *Collector) accumulateViews(
+	ctx context.Context,
+	cfg internalconfig.Config,
+	freshViews map[string]map[string]int,
+) (int, error) {
 	if collector.viewsHistoryPath == "" {
 		return 0, nil
 	}
+
 	viewsHistory, err := internalviewshistory.Load(collector.viewsHistoryPath)
 	if err != nil {
-		slog.ErrorContext(ctx, "load views history", "path", collector.viewsHistoryPath, "error", err)
+		slog.ErrorContext(
+			ctx,
+			"load views history",
+			"path",
+			collector.viewsHistoryPath,
+			"error",
+			err,
+		)
+
 		return 0, fmt.Errorf("load views history: %w", err)
 	}
+
 	if collector.profileCounter != nil {
 		profileViews, err := collector.profileCounter.FetchProfileViews(ctx, cfg.GitHubActor)
 		if err != nil {
 			if viewsHistory.Counter <= 0 {
 				return 0, fmt.Errorf("fetch profile counter: %w", err)
 			}
-			slog.WarnContext(ctx, "use stored profile counter", "counter", viewsHistory.Counter, "error", err)
+
+			slog.WarnContext(
+				ctx,
+				"use stored profile counter",
+				"counter",
+				viewsHistory.Counter,
+				"error",
+				err,
+			)
 		} else {
 			viewsHistory.Counter = profileViews
 			slog.InfoContext(ctx, "profile counter summary", "counter", profileViews)
 		}
 	}
+
 	viewsHistory = internalviewshistory.Merge(viewsHistory, freshViews)
 	if err := internalviewshistory.Save(collector.viewsHistoryPath, viewsHistory); err != nil {
-		slog.ErrorContext(ctx, "save views history", "path", collector.viewsHistoryPath, "error", err)
+		slog.ErrorContext(
+			ctx,
+			"save views history",
+			"path",
+			collector.viewsHistoryPath,
+			"error",
+			err,
+		)
+
 		return 0, fmt.Errorf("save views history: %w", err)
 	}
+
 	return internalviewshistory.Total(viewsHistory), nil
 }
 
-// Collect runs every GitHub fetch in sequence and assembles a StatsSummary
-// plus a detailed diagnostics report.
-func (collector *Collector) Collect(ctx context.Context, cfg internalconfig.Config) (internalmodel.StatsSummary, error) {
-	viewer, ownedRepositories, externalRepositories, err := collector.client.FetchViewerRepositories(ctx)
+// Collect fetches GitHub data and returns a StatsSummary.
+//
+// The summary includes a Diagnostics report with repository inclusion
+// decisions and weighted language totals. Collect returns an empty summary
+// and an error if an operation fails.
+//
+// For example:
+//
+//	summary, err := collector.Collect(ctx, cfg)
+func (collector *Collector) Collect(
+	ctx context.Context,
+	cfg internalconfig.Config,
+) (internalmodel.StatsSummary, error) {
+	data, err := collector.fetchActivity(ctx, cfg)
 	if err != nil {
-		slog.ErrorContext(ctx, "fetch viewer repositories", "error", err)
-		return internalmodel.StatsSummary{}, fmt.Errorf("fetch viewer repositories: %w", err)
+		return internalmodel.StatsSummary{}, err
 	}
-	// publicOwned strips private repos out of every downstream call so their
-	// names, traffic counts, and aggregate totals never reach the rendered
-	// SVGs or the committed views_history.json.
-	publicOwned := filterPublic(ownedRepositories)
 
-	contributionCount, err := collector.client.FetchTotalContributions(ctx)
-	if err != nil {
-		slog.ErrorContext(ctx, "fetch total contributions", "error", err)
-		return internalmodel.StatsSummary{}, fmt.Errorf("fetch total contributions: %w", err)
-	}
-	// Pull commit activity from owned (used for the top-repos ranking).
-	// SSO-gated work repos return 401/403 here too if the PAT is not
-	// authorized for the org; FetchContributorActivity logs+skips them.
-	activities, additions, deletions, err := collector.client.FetchContributorActivity(ctx, publicOwned, collector.now(), cfg.RecencyHalfLife, cfg.RecencyFloor)
-	if err != nil {
-		slog.ErrorContext(ctx, "fetch contributor activity", "error", err)
-		return internalmodel.StatsSummary{}, fmt.Errorf("fetch contributor activity: %w", err)
-	}
-	externalAdditions := 0
-	externalDeletions := 0
-	if cfg.ContributedIncludeInLOC {
-		_, externalAdditions, externalDeletions, err = collector.client.FetchContributorActivity(ctx, externalRepositories, collector.now(), cfg.RecencyHalfLife, cfg.RecencyFloor)
-		if err != nil {
-			slog.ErrorContext(ctx, "fetch external contributor activity", "error", err)
-			return internalmodel.StatsSummary{}, fmt.Errorf("fetch external contributor activity: %w", err)
-		}
-	}
-	repoCommitWeights := buildCommitWeightMap(activities, cfg.RecencyFloor)
-	weightedOwned, rawOwned, decisions, includedOwnedCount := collector.collectLanguages(cfg, ownedRepositories, repoCommitWeights)
-	freshViews, err := collector.client.FetchViews(ctx, publicOwned)
+	repoCommitWeights := buildCommitWeightMap(data.activities, cfg.RecencyFloor)
+	weightedOwned, rawOwned, decisions, includedOwnedCount := collector.collectLanguages(
+		cfg,
+		data.ownedRepositories,
+		repoCommitWeights,
+	)
+	freshViews, err := collector.client.FetchViews(ctx, data.publicOwned)
 	if err != nil {
 		slog.ErrorContext(ctx, "fetch views", "error", err)
+
 		return internalmodel.StatsSummary{}, fmt.Errorf("fetch views: %w", err)
 	}
+
 	views, err := collector.accumulateViews(ctx, cfg, freshViews)
 	if err != nil {
 		return internalmodel.StatsSummary{}, err
 	}
-	externalEstimates, err := collector.client.EstimateExternalContributions(ctx, externalRepositories)
+
+	externalEstimates, err := collector.client.EstimateExternalContributions(
+		ctx,
+		data.externalRepositories,
+	)
 	if err != nil {
 		slog.ErrorContext(ctx, "estimate external contributions", "error", err)
+
 		return internalmodel.StatsSummary{}, fmt.Errorf("estimate external contributions: %w", err)
 	}
-	collector.applyExternalWeights(cfg, externalRepositories, externalEstimates)
+
+	collector.applyExternalWeights(cfg, data.externalRepositories, externalEstimates)
 	externalEstimatedLanguage := aggregateExternalLanguages(cfg, externalEstimates)
 	effectiveLanguage := weightedOwned
 	if cfg.ContributedIncludeInLangs {
 		effectiveLanguage = mergeLanguageStats(weightedOwned, externalEstimatedLanguage)
 	}
 
-	topRepos := collector.rankTopRepos(cfg, publicOwned, activities)
+	topRepos := collector.rankTopRepos(cfg, data.publicOwned, data.activities)
 
-	sort.Slice(externalEstimates, func(left int, right int) bool {
-		if externalEstimates[left].WeightedEstimatedBytes == externalEstimates[right].WeightedEstimatedBytes {
-			return externalEstimates[left].RepositoryName < externalEstimates[right].RepositoryName
-		}
-		return externalEstimates[left].WeightedEstimatedBytes > externalEstimates[right].WeightedEstimatedBytes
-	})
+	sort.Slice(
+		externalEstimates,
+		func(left int, right int) bool {
+			if externalEstimates[left].WeightedEstimatedBytes == externalEstimates[right].WeightedEstimatedBytes {
+				return externalEstimates[left].RepositoryName < externalEstimates[right].RepositoryName
+			}
 
-	displayName := strings.TrimSpace(viewer.Name)
+			return externalEstimates[left].WeightedEstimatedBytes > externalEstimates[right].WeightedEstimatedBytes
+		},
+	)
+
+	displayName := strings.TrimSpace(data.viewer.Name)
 	if displayName == "" {
-		displayName = viewer.Login
+		displayName = data.viewer.Login
 	}
 
 	// "Public repos I own" only counts repos that survive every inclusion
 	// rule the language/top-repos pipelines apply (configured by [owned] in
 	// config.toml) so the header number matches what the rest of the SVGs
 	// reflect.
-	activeOwned := filterActiveOwned(cfg, publicOwned)
-	contributedRepos := externalRepositories
+	activeOwned := filterActiveOwned(cfg, data.publicOwned)
+	contributedRepos := data.externalRepositories
 	if cfg.ContributedInclude == internalconfig.ContributedPublicOnly {
-		contributedRepos = filterPublic(externalRepositories)
+		contributedRepos = filterPublic(data.externalRepositories)
 	}
+
 	return internalmodel.StatsSummary{
 		Overview: internalmodel.OverviewStats{
 			Name:                    displayName,
 			Stars:                   sumRepositoryStars(activeOwned),
 			Forks:                   sumRepositoryForks(activeOwned),
-			TotalContributions:      contributionCount,
-			LinesChanged:            additions + deletions + externalAdditions + externalDeletions,
+			TotalContributions:      data.contributionCount,
+			LinesChanged:            data.additions + data.deletions + data.externalAdditions + data.externalDeletions,
 			Views:                   views,
 			OwnedRepositories:       len(activeOwned),
 			ContributedRepositories: len(contributedRepos),
@@ -208,18 +269,80 @@ func (collector *Collector) Collect(ctx context.Context, cfg internalconfig.Conf
 		Languages: effectiveLanguage,
 		TopRepos:  topRepos,
 		Diagnostics: internalmodel.DiagnosticsReport{
-			Scope:                     diagnosticsScope,
-			Summary:                   buildDiagnosticsSummary(cfg, len(ownedRepositories), len(externalRepositories), includedOwnedCount, weightedOwned, externalEstimates),
+			Scope: diagnosticsScope,
+			Summary: buildDiagnosticsSummary(
+				cfg,
+				len(data.ownedRepositories),
+				len(data.externalRepositories),
+				includedOwnedCount,
+				weightedOwned,
+				externalEstimates,
+			),
 			WeightedOwnedLanguage:     weightedOwned,
 			RawOwnedLanguage:          rawOwned,
 			ExternalEstimatedLanguage: externalEstimatedLanguage,
 			EffectiveLanguage:         effectiveLanguage,
-			ExternalRepositories:      externalRepositories,
+			ExternalRepositories:      data.externalRepositories,
 			ExternalEstimates:         externalEstimates,
 			Decisions:                 decisions,
 		},
-		Repositories: ownedRepositories,
+		Repositories: data.ownedRepositories,
 	}, nil
+}
+
+func (collector *Collector) fetchActivity(
+	ctx context.Context,
+	cfg internalconfig.Config,
+) (activityData, error) {
+	var data activityData
+	var err error
+	data.viewer, data.ownedRepositories, data.externalRepositories, err = collector.client.FetchViewerRepositories(
+		ctx,
+	)
+	if err != nil {
+		slog.ErrorContext(ctx, "fetch viewer repositories", "error", err)
+
+		return data, fmt.Errorf("fetch viewer repositories: %w", err)
+	}
+
+	// Exclude private owned repositories before activity and traffic requests.
+	data.publicOwned = filterPublic(data.ownedRepositories)
+	data.contributionCount, err = collector.client.FetchTotalContributions(ctx)
+	if err != nil {
+		slog.ErrorContext(ctx, "fetch total contributions", "error", err)
+
+		return data, fmt.Errorf("fetch total contributions: %w", err)
+	}
+
+	data.activities, data.additions, data.deletions, err = collector.client.FetchContributorActivity(
+		ctx,
+		data.publicOwned,
+		collector.now(),
+		cfg.RecencyHalfLife,
+		cfg.RecencyFloor,
+	)
+	if err != nil {
+		slog.ErrorContext(ctx, "fetch contributor activity", "error", err)
+
+		return data, fmt.Errorf("fetch contributor activity: %w", err)
+	}
+
+	if cfg.ContributedIncludeInLOC {
+		_, data.externalAdditions, data.externalDeletions, err = collector.client.FetchContributorActivity(
+			ctx,
+			data.externalRepositories,
+			collector.now(),
+			cfg.RecencyHalfLife,
+			cfg.RecencyFloor,
+		)
+		if err != nil {
+			slog.ErrorContext(ctx, "fetch external contributor activity", "error", err)
+
+			return data, fmt.Errorf("fetch external contributor activity: %w", err)
+		}
+	}
+
+	return data, nil
 }
 
 // filterPublic returns only repositories whose IsPrivate is false. Used to
@@ -232,8 +355,10 @@ func filterPublic(repositories []internalmodel.Repository) []internalmodel.Repos
 		if repository.IsPrivate {
 			continue
 		}
+
 		publicRepos = append(publicRepos, repository)
 	}
+
 	return publicRepos
 }
 
@@ -242,14 +367,19 @@ func filterPublic(repositories []internalmodel.Repository) []internalmodel.Repos
 // / not excluded-by-name / has language data). Used for the displayed
 // "repos I own" count and the Stars/Forks aggregate sums so those numbers
 // match what the language and top-repos pipelines actually count.
-func filterActiveOwned(cfg internalconfig.Config, repositories []internalmodel.Repository) []internalmodel.Repository {
+func filterActiveOwned(
+	cfg internalconfig.Config,
+	repositories []internalmodel.Repository,
+) []internalmodel.Repository {
 	active := make([]internalmodel.Repository, 0, len(repositories))
 	for _, repository := range repositories {
 		if repositoryExclusionReason(cfg, repository, sumRepositoryBytes(repository)) != "" {
 			continue
 		}
+
 		active = append(active, repository)
 	}
+
 	return active
 }
 
@@ -257,22 +387,32 @@ func filterActiveOwned(cfg internalconfig.Config, repositories []internalmodel.R
 // weight (weightedCommits / commits). The result is used as the language byte
 // multiplier so a repo's language bytes are reduced in proportion to how old
 // its commits are.
-func buildCommitWeightMap(activities []internalmodel.RepoActivity, floor float64) map[string]float64 {
+func buildCommitWeightMap(
+	activities []internalmodel.RepoActivity,
+	floor float64,
+) map[string]float64 {
 	weights := make(map[string]float64, len(activities))
 	for _, activity := range activities {
 		if activity.Commits <= 0 {
 			continue
 		}
+
 		avg := activity.WeightedCommits / float64(activity.Commits)
 		if avg < floor {
 			avg = floor
 		}
+
 		weights[activity.RepositoryName] = avg
 	}
+
 	return weights
 }
 
-func (collector *Collector) rankTopRepos(cfg internalconfig.Config, ownedRepositories []internalmodel.Repository, activities []internalmodel.RepoActivity) []internalmodel.RepoActivity {
+func (collector *Collector) rankTopRepos(
+	cfg internalconfig.Config,
+	ownedRepositories []internalmodel.Repository,
+	activities []internalmodel.RepoActivity,
+) []internalmodel.RepoActivity {
 	repositoryByName := make(map[string]internalmodel.Repository, len(ownedRepositories))
 	for _, repository := range ownedRepositories {
 		repositoryByName[repository.NameWithOwner] = repository
@@ -284,29 +424,38 @@ func (collector *Collector) rankTopRepos(cfg internalconfig.Config, ownedReposit
 		if !found {
 			continue
 		}
+
 		if repositoryExclusionReason(cfg, repository, sumRepositoryBytes(repository)) != "" {
 			continue
 		}
+
 		activity.Stars = repository.Stars
 		// Score = log10(1+weighted_commits) + star_coefficient * log10(1+stars).
 		// Configurable so popularity vs commit-volume can be retuned without
 		// a code change.
-		activity.Score = math.Log10(1+activity.WeightedCommits) + cfg.TopReposStarCoefficient*math.Log10(1+float64(activity.Stars))
+		activity.Score = math.Log10(
+			1+activity.WeightedCommits,
+		) + cfg.TopReposStarCoefficient*math.Log10(1+float64(activity.Stars))
 		activity.Description = repository.Description
 		activity.LangColor = primaryLanguageColor(repository)
 		activity.UpdatedAgo = humanizeAge(collector.now().Sub(repository.PushedAt))
 		ranked = append(ranked, activity)
 	}
 
-	sort.Slice(ranked, func(left int, right int) bool {
-		if ranked[left].Score == ranked[right].Score {
-			return ranked[left].RepositoryName < ranked[right].RepositoryName
-		}
-		return ranked[left].Score > ranked[right].Score
-	})
+	sort.Slice(
+		ranked,
+		func(left int, right int) bool {
+			if ranked[left].Score == ranked[right].Score {
+				return ranked[left].RepositoryName < ranked[right].RepositoryName
+			}
+
+			return ranked[left].Score > ranked[right].Score
+		},
+	)
 	if cfg.TopReposLimit > 0 && len(ranked) > cfg.TopReposLimit {
 		ranked = ranked[:cfg.TopReposLimit]
 	}
+
 	return ranked
 }
 
@@ -314,6 +463,7 @@ func primaryLanguageColor(repository internalmodel.Repository) string {
 	if len(repository.Languages) == 0 {
 		return ""
 	}
+
 	return strings.TrimSpace(repository.Languages[0].Color)
 }
 
@@ -324,6 +474,7 @@ func humanizeAge(age time.Duration) string {
 	if age < 0 {
 		return "today"
 	}
+
 	days := int(age.Hours() / 24)
 	switch {
 	case days <= 0:
@@ -341,7 +492,16 @@ func humanizeAge(age time.Duration) string {
 	}
 }
 
-func (collector *Collector) collectLanguages(cfg internalconfig.Config, repositories []internalmodel.Repository, repoCommitWeights map[string]float64) ([]internalmodel.LanguageStat, []internalmodel.LanguageStat, []internalmodel.InclusionDecision, int) {
+func (collector *Collector) collectLanguages(
+	cfg internalconfig.Config,
+	repositories []internalmodel.Repository,
+	repoCommitWeights map[string]float64,
+) (
+	[]internalmodel.LanguageStat,
+	[]internalmodel.LanguageStat,
+	[]internalmodel.InclusionDecision,
+	int,
+) {
 	weighted := make(map[string]*languageAccumulator)
 	raw := make(map[string]*languageAccumulator)
 	decisions := make([]internalmodel.InclusionDecision, 0, len(repositories))
@@ -368,6 +528,7 @@ func (collector *Collector) collectLanguages(cfg internalconfig.Config, reposito
 		if !ok {
 			recencyWeight = collector.recencyWeight(cfg, repository)
 		}
+
 		decision.Included = true
 		decision.Reason = "recency_weighted"
 		decision.RecencyWeight = recencyWeight
@@ -379,6 +540,7 @@ func (collector *Collector) collectLanguages(cfg internalconfig.Config, reposito
 			if _, excluded := cfg.ExcludedLangs[strings.ToLower(language.Name)]; excluded {
 				continue
 			}
+
 			weightedAccumulator := getAccumulator(weighted, language.Name, language.Color)
 			weightedAccumulator.bytes += language.Bytes
 			weightedAccumulator.weighted += float64(language.Bytes) * recencyWeight
@@ -392,66 +554,94 @@ func (collector *Collector) collectLanguages(cfg internalconfig.Config, reposito
 	return finalizeLanguages(weighted), finalizeLanguages(raw), decisions, includedCount
 }
 
-func repositoryExclusionReason(cfg internalconfig.Config, repository internalmodel.Repository, rawBytes int) string {
+func repositoryExclusionReason(
+	cfg internalconfig.Config,
+	repository internalmodel.Repository,
+	rawBytes int,
+) string {
 	if repository.IsPrivate {
 		return "private"
 	}
+
 	if cfg.ExcludeArchived && repository.IsArchived {
 		return "archived"
 	}
+
 	if cfg.ExcludeDisabled && repository.IsDisabled {
 		return "disabled"
 	}
+
 	if cfg.ExcludeForks && repository.IsFork {
 		return "fork"
 	}
+
 	if _, excluded := cfg.ExcludedRepos[repository.NameWithOwner]; excluded {
 		return "excluded_repo"
 	}
+
 	if cfg.RequireLanguages && rawBytes == 0 {
 		return "missing_language_data"
 	}
+
 	return ""
 }
 
-func (collector *Collector) applyExternalWeights(cfg internalconfig.Config, repositories []internalmodel.Repository, estimates []internalmodel.ExternalContributionEstimate) {
+func (collector *Collector) applyExternalWeights(
+	cfg internalconfig.Config,
+	repositories []internalmodel.Repository,
+	estimates []internalmodel.ExternalContributionEstimate,
+) {
 	repoByName := make(map[string]internalmodel.Repository, len(repositories))
 	for _, repository := range repositories {
 		repoByName[repository.NameWithOwner] = repository
 	}
+
 	for index, estimate := range estimates {
 		repository, found := repoByName[estimate.RepositoryName]
 		if !found {
 			continue
 		}
+
 		recencyWeight := collector.recencyWeight(cfg, repository)
 		estimates[index].RecencyWeight = recencyWeight
 		totalWeighted := 0.0
+
 		for languageIndex, language := range estimates[index].Languages {
 			weightedValue := language.Weighted * recencyWeight
 			estimates[index].Languages[languageIndex].Weighted = weightedValue
 			totalWeighted += weightedValue
 		}
+
 		estimates[index].WeightedEstimatedBytes = estimates[index].RawEstimatedBytes * recencyWeight
 		if totalWeighted <= 0 {
 			continue
 		}
+
 		for languageIndex, language := range estimates[index].Languages {
 			estimates[index].Languages[languageIndex].Percentage = 100 * language.Weighted / totalWeighted
 		}
 	}
 }
 
-func buildDiagnosticsSummary(cfg internalconfig.Config, ownedCount int, externalCount int, includedOwnedCount int, weightedOwned []internalmodel.LanguageStat, externalEstimates []internalmodel.ExternalContributionEstimate) internalmodel.DiagnosticsSummary {
+func buildDiagnosticsSummary(
+	cfg internalconfig.Config,
+	ownedCount int,
+	externalCount int,
+	includedOwnedCount int,
+	weightedOwned []internalmodel.LanguageStat,
+	externalEstimates []internalmodel.ExternalContributionEstimate,
+) internalmodel.DiagnosticsSummary {
 	estimatedExternalCount := 0
 	unknownExternalCount := 0
 	externalWeightedBytes := 0.0
+
 	for _, estimate := range externalEstimates {
 		externalWeightedBytes += estimate.WeightedEstimatedBytes
 		if estimate.Confidence == "unknown" {
 			unknownExternalCount += 1
 			continue
 		}
+
 		estimatedExternalCount += 1
 	}
 
@@ -468,11 +658,15 @@ func buildDiagnosticsSummary(cfg internalconfig.Config, ownedCount int, external
 	}
 }
 
-func (collector *Collector) recencyWeight(cfg internalconfig.Config, repository internalmodel.Repository) float64 {
+func (collector *Collector) recencyWeight(
+	cfg internalconfig.Config,
+	repository internalmodel.Repository,
+) float64 {
 	referenceTime := repository.PushedAt
 	if referenceTime.IsZero() {
 		referenceTime = repository.UpdatedAt
 	}
+
 	if referenceTime.IsZero() {
 		return cfg.RecencyFloor
 	}
@@ -481,88 +675,121 @@ func (collector *Collector) recencyWeight(cfg internalconfig.Config, repository 
 	if age <= 0 {
 		return 1
 	}
+
 	halfLives := float64(age) / float64(cfg.RecencyHalfLife)
 	weight := math.Pow(0.5, halfLives)
 	if weight < cfg.RecencyFloor {
 		return cfg.RecencyFloor
 	}
+
 	return weight
 }
 
-func getAccumulator(accumulators map[string]*languageAccumulator, name string, color string) *languageAccumulator {
+func getAccumulator(
+	accumulators map[string]*languageAccumulator,
+	name string,
+	color string,
+) *languageAccumulator {
 	accumulator, found := accumulators[name]
 	if found {
 		return accumulator
 	}
+
 	accumulator = &languageAccumulator{name: name, color: color}
 	accumulators[name] = accumulator
+
 	return accumulator
 }
 
 func finalizeLanguages(accumulators map[string]*languageAccumulator) []internalmodel.LanguageStat {
 	languages := make([]internalmodel.LanguageStat, 0, len(accumulators))
 	totalWeighted := 0.0
+
 	for _, accumulator := range accumulators {
 		totalWeighted += accumulator.weighted
 	}
+
 	for _, accumulator := range accumulators {
 		percentage := 0.0
 		if totalWeighted > 0 {
 			percentage = 100 * accumulator.weighted / totalWeighted
 		}
-		languages = append(languages, internalmodel.LanguageStat{
-			Name:       accumulator.name,
-			Color:      fallbackColor(accumulator.color),
-			Bytes:      accumulator.bytes,
-			Weighted:   accumulator.weighted,
-			Percentage: percentage,
-		})
+
+		languages = append(
+			languages,
+			internalmodel.LanguageStat{
+				Name:       accumulator.name,
+				Color:      fallbackColor(accumulator.color),
+				Bytes:      accumulator.bytes,
+				Weighted:   accumulator.weighted,
+				Percentage: percentage,
+			},
+		)
 	}
 
-	sort.Slice(languages, func(left int, right int) bool {
-		if languages[left].Weighted == languages[right].Weighted {
-			return languages[left].Name < languages[right].Name
-		}
-		return languages[left].Weighted > languages[right].Weighted
-	})
+	sort.Slice(
+		languages,
+		func(left int, right int) bool {
+			if languages[left].Weighted == languages[right].Weighted {
+				return languages[left].Name < languages[right].Name
+			}
+
+			return languages[left].Weighted > languages[right].Weighted
+		},
+	)
+
 	return languages
 }
 
-func aggregateExternalLanguages(cfg internalconfig.Config, estimates []internalmodel.ExternalContributionEstimate) []internalmodel.LanguageStat {
+func aggregateExternalLanguages(
+	cfg internalconfig.Config,
+	estimates []internalmodel.ExternalContributionEstimate,
+) []internalmodel.LanguageStat {
 	accumulators := make(map[string]*languageAccumulator)
+
 	for _, estimate := range estimates {
 		for _, language := range estimate.Languages {
 			if _, excluded := cfg.ExcludedLangs[strings.ToLower(language.Name)]; excluded {
 				continue
 			}
+
 			accumulator := getAccumulator(accumulators, language.Name, language.Color)
 			accumulator.bytes += language.Bytes
 			accumulator.weighted += language.Weighted
 		}
 	}
+
 	return finalizeLanguages(accumulators)
 }
 
-func mergeLanguageStats(base []internalmodel.LanguageStat, extras []internalmodel.LanguageStat) []internalmodel.LanguageStat {
+func mergeLanguageStats(
+	base []internalmodel.LanguageStat,
+	extras []internalmodel.LanguageStat,
+) []internalmodel.LanguageStat {
 	accumulators := make(map[string]*languageAccumulator)
+
 	for _, language := range base {
 		accumulator := getAccumulator(accumulators, language.Name, language.Color)
 		accumulator.bytes += language.Bytes
 		accumulator.weighted += language.Weighted
 	}
+
 	for _, language := range extras {
 		accumulator := getAccumulator(accumulators, language.Name, language.Color)
 		accumulator.bytes += language.Bytes
 		accumulator.weighted += language.Weighted
 	}
+
 	return finalizeLanguages(accumulators)
 }
 
 func sumLanguageWeighted(languages []internalmodel.LanguageStat) float64 {
 	total := 0.0
+
 	for _, language := range languages {
 		total += language.Weighted
 	}
+
 	return total
 }
 
@@ -570,30 +797,37 @@ func fallbackColor(color string) string {
 	if strings.TrimSpace(color) == "" {
 		return "#000000"
 	}
+
 	return color
 }
 
 func sumRepositoryBytes(repository internalmodel.Repository) int {
 	total := 0
+
 	for _, language := range repository.Languages {
 		total += language.Bytes
 	}
+
 	return total
 }
 
 func sumRepositoryStars(repositories []internalmodel.Repository) int {
 	total := 0
+
 	for _, repository := range repositories {
 		total += repository.Stars
 	}
+
 	return total
 }
 
 func sumRepositoryForks(repositories []internalmodel.Repository) int {
 	total := 0
+
 	for _, repository := range repositories {
 		total += repository.Forks
 	}
+
 	return total
 }
 
@@ -604,5 +838,6 @@ func FormatDiagnostics(report internalmodel.DiagnosticsReport) string {
 	if err != nil {
 		return fmt.Sprintf("{\n  \"error\": %q\n}\n", err.Error())
 	}
+
 	return string(encoded) + "\n"
 }

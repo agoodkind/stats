@@ -43,14 +43,17 @@ func New(options ...Options) *Client {
 		httpClient: &http.Client{Timeout: defaultRequestTimeout},
 		endpoint:   defaultEndpoint,
 	}
+
 	for _, option := range options {
 		if option.HTTPClient != nil {
 			client.httpClient = option.HTTPClient
 		}
+
 		if option.Endpoint != "" {
 			client.endpoint = option.Endpoint
 		}
 	}
+
 	return client
 }
 
@@ -61,32 +64,38 @@ func (client *Client) FetchProfileViews(ctx context.Context, actor string) (int,
 	if err != nil {
 		return 0, err
 	}
+
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, badgeURL, nil)
 	if err != nil {
 		slog.ErrorContext(ctx, "create profile counter request", "url", badgeURL, "error", err)
 		return 0, fmt.Errorf("create profile counter request: %w", err)
 	}
+
 	response, err := client.httpClient.Do(request)
 	if err != nil {
 		slog.ErrorContext(ctx, "fetch profile counter", "url", badgeURL, "error", err)
 		return 0, fmt.Errorf("fetch profile counter: %w", err)
 	}
+
 	defer func() {
 		_ = response.Body.Close()
 	}()
 	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
 		return 0, fmt.Errorf("fetch profile counter: status %d", response.StatusCode)
 	}
+
 	body, err := io.ReadAll(io.LimitReader(response.Body, maxBadgeBytes))
 	if err != nil {
 		slog.ErrorContext(ctx, "read profile counter", "url", badgeURL, "error", err)
 		return 0, fmt.Errorf("read profile counter: %w", err)
 	}
+
 	count, err := parseBadgeCount(string(body))
 	if err != nil {
 		slog.ErrorContext(ctx, "parse profile counter", "url", badgeURL, "error", err)
 		return 0, fmt.Errorf("parse profile counter: %w", err)
 	}
+
 	return count, nil
 }
 
@@ -95,14 +104,17 @@ func (client *Client) badgeURL(actor string) (string, error) {
 	if trimmedActor == "" {
 		return "", fmt.Errorf("profile counter actor is empty")
 	}
+
 	parsedURL, err := url.Parse(client.endpoint)
 	if err != nil {
 		slog.Error("parse profile counter endpoint", "endpoint", client.endpoint, "error", err)
 		return "", fmt.Errorf("parse profile counter endpoint: %w", err)
 	}
+
 	query := parsedURL.Query()
 	query.Set("username", trimmedActor)
 	parsedURL.RawQuery = query.Encode()
+
 	return parsedURL.String(), nil
 }
 
@@ -111,7 +123,9 @@ func parseBadgeCount(svgText string) (int, error) {
 	if len(matches) == 0 {
 		return 0, fmt.Errorf("badge value not found")
 	}
+
 	lastValue := 0
+
 	for _, match := range matches {
 		valueText := strings.ReplaceAll(match[1], ",", "")
 		value, err := strconv.Atoi(valueText)
@@ -119,7 +133,9 @@ func parseBadgeCount(svgText string) (int, error) {
 			slog.Error("decode profile counter badge value", "value", match[1], "error", err)
 			return 0, fmt.Errorf("decode badge value %q: %w", match[1], err)
 		}
+
 		lastValue = value
 	}
+
 	return lastValue, nil
 }

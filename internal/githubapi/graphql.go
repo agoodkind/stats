@@ -443,6 +443,7 @@ func (client *Client) fetchRepositoryCommitActivity(
 				"error",
 				err,
 			)
+
 			return 0, 0, 0, 0, fmt.Errorf(
 				"fetch repository commit activity for %s/%s: %w",
 				owner,
@@ -465,6 +466,7 @@ func (client *Client) fetchRepositoryCommitActivity(
 				"error",
 				err,
 			)
+
 			return 0, 0, 0, 0, fmt.Errorf(
 				"decode repository commit activity for %s/%s: %w",
 				owner,

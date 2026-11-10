@@ -157,6 +157,7 @@ func (client *Client) doGraphQL(
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		responseText := strings.TrimSpace(string(responseBody))
+
 		return graphQLEnvelope{}, fmt.Errorf(
 			"graphql returned %d: %s",
 			response.StatusCode,

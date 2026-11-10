@@ -21,6 +21,7 @@ func New(level string, buildVersion string) (*slog.Logger, io.Closer) {
 		},
 	})
 	slog.SetDefault(logger)
+
 	return logger, closer
 }
 

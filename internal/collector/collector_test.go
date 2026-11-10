@@ -262,6 +262,7 @@ func startCollectionServer(t *testing.T) (*httptest.Server, *atomic.Bool) {
 						writer,
 						`{"views":[{"timestamp":"2026-05-23T00:00:00Z","count":7}]}`,
 					)
+
 					return
 				}
 

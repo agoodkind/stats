@@ -1,4 +1,64 @@
-# golangci-lint: generated_at=2026-11-09T13:58:48Z
+# golangci-lint: generated_at=2026-11-10T10:36:31Z
+cmd/stats-gh-readme-cache/main.go:79:3: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+cmd/stats-gh/main.go:65:3: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/app/app.go:93:3: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/app/app.go:60:10: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"empty command\")" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/app/app.go:60:10: error-format: fmt.Errorf can be replaced with errors.New (perfsprint)	# golangci-lint:first_added=2026-11-09T13:58:07Z last_seen=2026-11-10T10:36:31Z
+internal/app/app.go:62:10: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"unknown command %q\", string(command))" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/collector/collector.go:116:1: unexported method "accumulateViews" for struct "Collector" should be placed after the exported method "Collect" (funcorder)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/collector/collector.go:478:28: Magic number: 24, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/collector/collector.go:484:14: Magic number: 14, in <case> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/collector/collector.go:486:14: Magic number: 60, in <case> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/collector/collector.go:487:38: Magic number: 7, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/collector/collector.go:488:14: Magic number: 730, in <case> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/collector/collector.go:489:39: Magic number: 30, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/collector/collector.go:491:38: Magic number: 365, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/collector/collector.go:642:4: continue with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/collector/collector.go:715:17: Magic number: 100, in <operation> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/collector/collector.go:680:21: Magic number: 0.5, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/collector/collector_test.go:250:6: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/config/config.go:138:1: godoc line is too long (87 > 77) (godoclint)	# golangci-lint:first_added=2026-11-09T13:58:02Z last_seen=2026-11-10T10:36:31Z
+internal/config/config.go:143:1: godoc line is too long (83 > 77) (godoclint)	# golangci-lint:first_added=2026-11-09T13:58:02Z last_seen=2026-11-10T10:36:31Z
+internal/config/config.go:376:3: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/config/config.go:194:20: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"config file %q is missing github.token\", cleanPath)" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/config/config.go:198:20: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"config file %q is missing github.actor\", cleanPath)" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/config/config.go:327:10: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\n\t\"contributed.include %q must be %q or %q\",\n\tvalue,\n\tContributedAll,\n\tContributedPublicOnly,\n)" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/config/config.go:348:10: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\n\t\"languages.compression %q must be %q, %q, or %q\",\n\tvalue,\n\tLanguagesLinear,\n\tLanguagesSqrt,\n\tLanguagesLog,\n)" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/config/config.go:384:13: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"recency.floor must be between 0 and 1\")" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/config/config.go:384:13: error-format: fmt.Errorf can be replaced with errors.New (perfsprint)	# golangci-lint:first_added=2026-11-09T13:58:07Z last_seen=2026-11-10T10:36:31Z
+internal/githubapi/client.go:242:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/githubapi/client.go:161:29: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\n\t\"graphql returned %d: %s\",\n\tresponse.StatusCode,\n\tresponseText,\n)" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/githubapi/client.go:194:14: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\n\t\"github rate limit response %d, retry-after=%q, reset=%q\",\n\tresponse.StatusCode,\n\tretryAfter,\n\tresetAt,\n)" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/githubapi/client.go:234:18: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"split repository name %q\", nameWithOwner)" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/githubapi/client_test.go:220:5: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/githubapi/graphql.go:618:3: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/githubapi/graphql.go:456:23: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"graphql error: %s\", envelope.Errors[0].Message)" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/githubapi/graphql.go:253:13: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"graphql error: %s\", yearsEnvelope.Errors[0].Message)" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/githubapi/graphql.go:284:13: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"graphql error: %s\", contributionsEnvelope.Errors[0].Message)" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/githubapi/graphql.go:353:4: continue with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/githubapi/graphql.go:403:14: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"github actor %q not found\", client.actor)" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/githubapi/graphql.go:517:21: Magic number: 0.5, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/githubapi/rest.go:58:4: continue with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/output/output.go:25:3: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/profilecounter/counter.go:105:14: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"profile counter actor is empty\")" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/profilecounter/counter.go:124:13: error-format: fmt.Errorf can be replaced with errors.New (perfsprint)	# golangci-lint:first_added=2026-11-09T13:58:07Z last_seen=2026-11-10T10:36:31Z
+internal/profilecounter/counter.go:96:3: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/profilecounter/counter.go:124:13: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"badge value not found\")" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/profilecounter/counter.go:84:13: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"fetch profile counter: status %d\", response.StatusCode)" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/readmecache/cache.go:15:1: The line is 164 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/readmecache/cache.go:22:17: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"cache key is required\")" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/readmecache/cache.go:39:17: error-format: fmt.Errorf can be replaced with errors.New (perfsprint)	# golangci-lint:first_added=2026-11-09T13:58:07Z last_seen=2026-11-10T10:36:31Z
+internal/readmecache/cache.go:39:17: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"no stats image URLs found\")" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/render/svg.go:175:3: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/render/svg.go:240:36: Magic number: 34, in <assign> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/render/svg.go:263:4: continue with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/render/svg.go:282:75: Magic number: 38, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/render/svg.go:311:32: Magic number: 2, in <operation> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/render/svg.go:395:23: Magic number: 3, in <condition> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/render/svg.go:399:35: Magic number: 3, in <operation> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/render/svg.go:417:13: Magic number: 100, in <condition> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/render/svg.go:418:10: Magic number: 100, in <return> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
+internal/viewshistory/history.go:74:3: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-10T10:36:31Z
 cmd/stats-gh-readme-cache/main.go:74:2: missing whitespace below this line (after-block) (wsl_v5)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:58:37Z
 cmd/stats-gh-readme-cache/main.go:78:2: missing whitespace above this line (too many lines above return) (wsl_v5)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:58:37Z
 cmd/stats-gh/main.go:62:2: missing whitespace below this line (after-block) (wsl_v5)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:58:37Z
@@ -52,20 +112,9 @@ internal/viewshistory/history.go:96:2: missing whitespace below this line (after
 internal/viewshistory/history.go:97:2: missing whitespace above this line (too many lines above return) (wsl_v5)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:58:37Z
 internal/viewshistory/history.go:77:2: missing whitespace above this line (invalid statement above range) (wsl_v5)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:58:37Z
 internal/viewshistory/history_test.go:62:2: missing whitespace below this line (after-block) (wsl_v5)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:58:37Z
-internal/app/app.go:52:10: error-format: fmt.Errorf can be replaced with errors.New (perfsprint)	# golangci-lint:first_added=2026-11-09T13:58:07Z last_seen=2026-11-09T13:58:07Z
-internal/config/config.go:343:13: error-format: fmt.Errorf can be replaced with errors.New (perfsprint)	# golangci-lint:first_added=2026-11-09T13:58:07Z last_seen=2026-11-09T13:58:07Z
-internal/profilecounter/counter.go:96:14: error-format: fmt.Errorf can be replaced with errors.New (perfsprint)	# golangci-lint:first_added=2026-11-09T13:58:07Z last_seen=2026-11-09T13:58:07Z
-internal/readmecache/cache.go:35:17: error-format: fmt.Errorf can be replaced with errors.New (perfsprint)	# golangci-lint:first_added=2026-11-09T13:58:07Z last_seen=2026-11-09T13:58:07Z
-internal/config/config.go:138:1: godoc line is too long (87 > 77) (godoclint)	# golangci-lint:first_added=2026-11-09T13:58:02Z last_seen=2026-11-09T13:58:02Z
-internal/config/config.go:143:1: godoc line is too long (83 > 77) (godoclint)	# golangci-lint:first_added=2026-11-09T13:58:02Z last_seen=2026-11-09T13:58:02Z
 cmd/stats-gh-readme-cache/main.go:71:5: avoid inline error handling using `if err := ...; err != nil`; use plain assignment `err := ...` (noinlineerr)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-cmd/stats-gh-readme-cache/main.go:78:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-cmd/stats-gh/main.go:63:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 cmd/stats-gh/main.go:59:5: avoid inline error handling using `if err := ...; err != nil`; use plain assignment `err := ...` (noinlineerr)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/app/app.go:95:5: avoid inline error handling using `if err := ...; err != nil`; use plain assignment `err := ...` (noinlineerr)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/app/app.go:99:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/app/app.go:52:10: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"empty command\")" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/app/app.go:54:10: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"unknown command %q\", string(command))" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/app/app.go:71:1: The line is 138 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/collector/collector.go:109:5: avoid inline error handling using `if err := ...; err != nil`; use plain assignment `err := ...` (noinlineerr)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/collector/collector.go:94:3: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
@@ -79,55 +128,24 @@ internal/collector/collector.go:275:1: The line is 185 characters long, which ex
 internal/collector/collector.go:27:1: The line is 189 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/collector/collector.go:294:1: The line is 125 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/collector/collector.go:29:1: The line is 146 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/collector/collector.go:327:28: Magic number: 24, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/collector/collector.go:333:14: Magic number: 14, in <case> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/collector/collector.go:335:14: Magic number: 60, in <case> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/collector/collector.go:336:38: Magic number: 7, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/collector/collector.go:337:14: Magic number: 730, in <case> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/collector/collector.go:338:39: Magic number: 30, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/collector/collector.go:340:38: Magic number: 365, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/collector/collector.go:344:1: The line is 253 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/collector/collector.go:453:4: continue with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/collector/collector.go:417:1: The line is 174 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/collector/collector.go:511:17: Magic number: 100, in <operation> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/collector/collector.go:445:1: The line is 257 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/collector/collector.go:485:21: Magic number: 0.5, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/collector/collector.go:531:1: The line is 145 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/collector/collector.go:546:1: The line is 126 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/collector/collector.go:87:1: The line is 144 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/collector/collector.go:87:1: unexported method "accumulateViews" for struct "Collector" should be placed after the exported method "Collect" (funcorder)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/collector/collector_test.go:208:3: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/config/config.go:345:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/config/config.go:158:5: avoid inline error handling using `if err := ...; err != nil`; use plain assignment `err := ...` (noinlineerr)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/config/config.go:185:20: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"config file %q is missing github.token\", cleanPath)" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/config/config.go:188:20: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"config file %q is missing github.actor\", cleanPath)" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/config/config.go:301:10: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"contributed.include %q must be %q or %q\", value, ContributedAll, ContributedPublicOnly)" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/config/config.go:316:10: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"languages.compression %q must be %q, %q, or %q\", value, LanguagesLinear, LanguagesSqrt, LanguagesLog)" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/config/config.go:316:1: The line is 122 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/config/config.go:343:13: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"recency.floor must be between 0 and 1\")" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/githubapi/client.go:96:3: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/githubapi/client.go:139:29: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"graphql returned %d: %s\", response.StatusCode, responseText)" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/githubapi/client.go:142:5: avoid inline error handling using `if err := ...; err != nil`; use plain assignment `err := ...` (noinlineerr)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/githubapi/client.go:164:14: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"github rate limit response %d, retry-after=%q, reset=%q\", response.StatusCode, retryAfter, resetAt)" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/githubapi/client.go:164:1: The line is 124 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/githubapi/client.go:194:18: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"split repository name %q\", nameWithOwner)" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/githubapi/client_test.go:64:4: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/githubapi/graphql.go:160:1: The line is 161 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/githubapi/graphql.go:56:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/githubapi/graphql.go:370:23: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"graphql error: %s\", envelope.Errors[0].Message)" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/githubapi/graphql.go:373:6: avoid inline error handling using `if err := ...; err != nil`; use plain assignment `err := ...` (noinlineerr)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/githubapi/graphql.go:196:1: The line is 134 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/githubapi/graphql.go:197:1: The line is 156 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/githubapi/graphql.go:233:13: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"graphql error: %s\", yearsEnvelope.Errors[0].Message)" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/githubapi/graphql.go:260:13: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"graphql error: %s\", contributionsEnvelope.Errors[0].Message)" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/githubapi/graphql.go:280:1: The line is 212 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/githubapi/graphql.go:299:1: The line is 157 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/githubapi/graphql.go:302:4: continue with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/githubapi/graphql.go:343:14: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"github actor %q not found\", client.actor)" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/githubapi/graphql.go:348:1: The line is 217 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/githubapi/graphql.go:406:21: Magic number: 0.5, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/githubapi/graphql.go:471:1: The line is 128 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/githubapi/rest.go:81:4: continue with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/githubapi/rest.go:16:1: The line is 131 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/githubapi/rest.go:38:1: The line is 154 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/githubapi/rest.go:60:1: The line is 160 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
@@ -135,29 +153,11 @@ internal/githubapi/rest.go:61:2: return with no blank line before (nlreturn)	# g
 internal/githubapi/rest.go:68:1: The line is 169 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/logging/logging.go:24:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/output/output.go:22:8: avoid inline error handling using `if err := ...; err != nil`; use plain assignment `err := ...` (noinlineerr)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/output/output.go:26:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/profilecounter/counter.go:90:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/profilecounter/counter.go:112:13: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"badge value not found\")" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/profilecounter/counter.go:78:13: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"fetch profile counter: status %d\", response.StatusCode)" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/profilecounter/counter.go:96:14: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"profile counter actor is empty\")" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/readmecache/cache.go:15:1: The line is 164 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/readmecache/cache.go:22:17: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"cache key is required\")" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/readmecache/cache.go:31:3: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/readmecache/cache.go:35:17: do not define dynamic errors, use wrapped static errors instead: "fmt.Errorf(\"no stats image URLs found\")" (err113)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/render/svg.go:151:5: avoid inline error handling using `if err := ...; err != nil`; use plain assignment `err := ...` (noinlineerr)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/render/svg.go:359:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/render/svg.go:128:1: The line is 156 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/render/svg.go:131:1: The line is 209 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/render/svg.go:134:1: The line is 163 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/render/svg.go:171:1: The line is 126 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/render/svg.go:205:36: Magic number: 34, in <assign> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/render/svg.go:224:4: continue with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/render/svg.go:236:74: Magic number: 38, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/render/svg.go:261:32: Magic number: 2, in <operation> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/render/svg.go:337:23: Magic number: 3, in <condition> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/render/svg.go:341:35: Magic number: 3, in <operation> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/render/svg.go:356:13: Magic number: 100, in <condition> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/render/svg.go:357:10: Magic number: 100, in <return> detected (mnd)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/render/svg_test.go:194:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
-internal/viewshistory/history.go:97:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z
 internal/viewshistory/history.go:63:5: avoid inline error handling using `if err := ...; err != nil`; use plain assignment `err := ...` (noinlineerr)	# golangci-lint:first_added=2026-11-09T13:57:51Z last_seen=2026-11-09T13:57:51Z

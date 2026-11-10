@@ -20,6 +20,7 @@ func main() {
 		_, _ = fmt.Fprintf(os.Stderr, "stats-gh-readme-cache: %v\n", err)
 		os.Exit(1)
 	}
+
 	slog.Info("stats-gh-readme-cache completed")
 }
 
@@ -32,6 +33,7 @@ func run(args []string) error {
 		slog.Error("parse flags", "err", err)
 		return fmt.Errorf("parse flags: %w", err)
 	}
+
 	slog.Info("updating profile README cache keys", "readme_path", profileReadmePath)
 
 	content, err := os.ReadFile(profileReadmePath)
@@ -51,6 +53,7 @@ func run(args []string) error {
 		slog.Error("create temporary README", "err", err, "readme_path", profileReadmePath)
 		return fmt.Errorf("create temporary README: %w", err)
 	}
+
 	tempPath := tempFile.Name()
 	shouldRemoveTempFile := true
 	defer func() {
@@ -62,18 +65,23 @@ func run(args []string) error {
 	if _, err := tempFile.WriteString(updatedContent); err != nil {
 		_ = tempFile.Close()
 		slog.Error("write temporary README", "err", err, "readme_path", profileReadmePath)
+
 		return fmt.Errorf("write temporary README: %w", err)
 	}
+
 	if err := tempFile.Close(); err != nil {
 		slog.Error("close temporary README", "err", err, "readme_path", profileReadmePath)
 		return fmt.Errorf("close temporary README: %w", err)
 	}
+
 	if err := os.Rename(tempPath, profileReadmePath); err != nil {
 		slog.Error("replace README", "err", err, "readme_path", profileReadmePath)
 		return fmt.Errorf("replace README: %w", err)
 	}
+
 	shouldRemoveTempFile = false
 
 	fmt.Printf("updated %d stats image URLs in %s\n", replacementCount, profileReadmePath)
+
 	return nil
 }

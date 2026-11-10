@@ -29,21 +29,28 @@ func Load(path string) (History, error) {
 		if errors.Is(err, fs.ErrNotExist) {
 			return History{Repos: map[string]map[string]int{}}, nil
 		}
+
 		slog.Error("read views history", "path", path, "error", err)
+
 		return History{}, fmt.Errorf("read views history %q: %w", path, err)
 	}
+
 	var history History
 	if err := json.Unmarshal(data, &history); err != nil {
 		slog.Error("decode views history", "path", path, "error", err)
 		return History{}, fmt.Errorf("decode views history %q: %w", path, err)
 	}
+
 	if history.Repos == nil {
 		history.Repos = map[string]map[string]int{}
 	}
+
 	if history.Counter == 0 && history.Seed > 0 {
 		history.Counter = history.Seed
 	}
+
 	history.Seed = 0
+
 	return history, nil
 }
 
@@ -53,17 +60,20 @@ func Save(path string, history History) error {
 	if history.Repos == nil {
 		history.Repos = map[string]map[string]int{}
 	}
+
 	history.Seed = 0
 	encoded, err := json.MarshalIndent(history, "", "  ")
 	if err != nil {
 		slog.Error("encode views history", "path", path, "error", err)
 		return fmt.Errorf("encode views history: %w", err)
 	}
+
 	encoded = append(encoded, '\n')
 	if err := os.WriteFile(path, encoded, 0o600); err != nil {
 		slog.Error("write views history", "path", path, "error", err)
 		return fmt.Errorf("write views history %q: %w", path, err)
 	}
+
 	return nil
 }
 
@@ -74,14 +84,17 @@ func Merge(history History, fresh map[string]map[string]int) History {
 	if history.Repos == nil {
 		history.Repos = map[string]map[string]int{}
 	}
+
 	for repo, days := range fresh {
 		existing := history.Repos[repo]
 		if existing == nil {
 			existing = map[string]int{}
 		}
+
 		maps.Copy(existing, days)
 		history.Repos[repo] = existing
 	}
+
 	return history
 }
 
@@ -94,5 +107,6 @@ func Total(history History) int {
 			total += count
 		}
 	}
+
 	return total
 }

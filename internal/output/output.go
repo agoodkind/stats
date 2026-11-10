@@ -14,6 +14,7 @@ func WriteStdout(text string) error {
 		slog.Error("write stdout", "error", err)
 		return fmt.Errorf("write stdout: %w", err)
 	}
+
 	return nil
 }
 
@@ -23,5 +24,6 @@ func WriteStderr(text string) error {
 		slog.Error("write stderr", "error", err)
 		return fmt.Errorf("write stderr: %w", err)
 	}
+
 	return nil
 }

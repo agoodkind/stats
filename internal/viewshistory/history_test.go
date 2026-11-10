@@ -28,12 +28,15 @@ func TestLoadMigratesSeedToCounter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Load returned error: %v", err)
 	}
+
 	if history.Counter != 1152 {
 		t.Fatalf("expected migrated counter 1152, got %d", history.Counter)
 	}
+
 	if history.Seed != 0 {
 		t.Fatalf("expected seed to be cleared after migration, got %d", history.Seed)
 	}
+
 	if viewshistory.Total(history) != 1159 {
 		t.Fatalf("expected total 1159, got %d", viewshistory.Total(history))
 	}
@@ -52,14 +55,17 @@ func TestSaveWritesCounterOnly(t *testing.T) {
 	if err := viewshistory.Save(historyPath, history); err != nil {
 		t.Fatalf("Save returned error: %v", err)
 	}
+
 	savedBytes, err := os.ReadFile(historyPath)
 	if err != nil {
 		t.Fatalf("read saved history: %v", err)
 	}
+
 	saved := string(savedBytes)
 	if !strings.Contains(saved, `"counter": 1159`) {
 		t.Fatalf("expected saved counter, got %s", saved)
 	}
+
 	if strings.Contains(saved, `"seed"`) {
 		t.Fatalf("expected seed to be omitted, got %s", saved)
 	}
